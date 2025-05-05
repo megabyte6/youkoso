@@ -10,6 +10,7 @@ pub struct Config {
 pub struct MyStudio {
     pub email: String,
     pub password: String,
+    pub company_id: String,
 }
 
 /// Loads the configuration from a TOML file at the specified path.
@@ -64,6 +65,7 @@ pub fn load(config_path: &Path) -> Result<Config, Box<dyn Error>> {
             my_studio: MyStudio {
                 email: String::new(),
                 password: String::new(),
+                company_id: String::new(),
             },
         };
 

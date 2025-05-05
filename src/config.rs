@@ -4,17 +4,10 @@ use std::{error::Error, fs, path::Path};
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub my_studio: MyStudio,
-    pub class_dojo: ClassDojo,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct MyStudio {
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ClassDojo {
     pub email: String,
     pub password: String,
 }
@@ -69,10 +62,6 @@ pub fn load(config_path: &Path) -> Result<Config, Box<dyn Error>> {
     } else {
         config = Config {
             my_studio: MyStudio {
-                email: String::new(),
-                password: String::new(),
-            },
-            class_dojo: ClassDojo {
                 email: String::new(),
                 password: String::new(),
             },

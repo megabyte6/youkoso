@@ -1,10 +1,11 @@
+import { Palette, StyleMetrics, Switch, Button, LineEdit } from "std-widgets.slint";
+
 export enum Theme {
     system,
     dark,
     light,
 }
 
-import { Palette, StyleMetrics, Switch, Button, LineEdit } from "std-widgets.slint";
 export component AppWindow inherits Window {
     callback update-settings();
 

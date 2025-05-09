@@ -1,25 +1,22 @@
 import { Palette, StyleMetrics, Switch, Button, LineEdit } from "std-widgets.slint";
+import { Settings, Theme } from "settings.slint";
 
-export enum Theme {
-    system,
-    dark,
-    light,
-}
+export { Settings, SettingsUi, Theme } from "settings.slint";
 
-export component AppWindow inherits Window {
-    callback update-settings();
-
-    in-out property <Theme> theme;
+export component AppUi inherits Window {
     public function reload-theme() {
-        if (theme == Theme.dark) {
+        if (Settings.theme == Theme.dark) {
             Palette.color-scheme = ColorScheme.dark;
-        } else if (theme == Theme.light) {
+        } else if (Settings.theme == Theme.light) {
             Palette.color-scheme = ColorScheme.light;
         } else {
             Palette.color-scheme = ColorScheme.unknown;
         }
     }
 
+    callback open-settings <=> settings-button.clicked;
+
+    title: "Youkoso";
     preferred-width: 800px;
     preferred-height: 600px;
 
@@ -32,7 +29,7 @@ export component AppWindow inherits Window {
         height: 40px;
         padding: StyleMetrics.layout-padding;
 
-        TouchArea {}
+        settings-button := TouchArea {}
     }
 
     LineEdit {

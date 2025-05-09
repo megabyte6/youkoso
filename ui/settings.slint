@@ -1,0 +1,17 @@
+export enum Theme {
+    system,
+    dark,
+    light,
+}
+
+export global Settings {
+    in-out property <Theme> theme;
+}
+
+export component SettingsUi inherits Window {
+    callback update-settings();
+
+    title: "Youkoso Settings";
+    preferred-width: 600px;
+    preferred-height: 500px;
+}

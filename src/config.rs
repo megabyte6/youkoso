@@ -1,12 +1,21 @@
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fs, path::Path};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Config {
+    pub theme: Theme,
     pub my_studio: MyStudio,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
+pub enum Theme {
+    #[default]
+    System,
+    Dark,
+    Light,
+}
+
+#[derive(Serialize, Deserialize, Default)]
 pub struct MyStudio {
     pub email: String,
     pub password: String,
@@ -61,13 +70,7 @@ pub fn load(config_path: &Path) -> Result<Config, Box<dyn Error>> {
             )
         })?;
     } else {
-        config = Config {
-            my_studio: MyStudio {
-                email: String::new(),
-                password: String::new(),
-                company_id: String::new(),
-            },
-        };
+        config = Config::default();
 
         let default_config_toml = toml::to_string(&config)
             .map_err(|e| format!("Failed to serialize default config into TOML\n{e}"))?;

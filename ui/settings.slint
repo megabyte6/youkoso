@@ -5,13 +5,22 @@ export enum Theme {
 }
 
 export global Settings {
+    callback update-settings;
+
     in-out property <Theme> theme;
 }
 
-export component SettingsUi inherits Window {
-    callback update-settings();
+export component SettingsUi inherits Rectangle {
+    callback close;
 
-    title: "Youkoso Settings";
-    preferred-width: 600px;
-    preferred-height: 500px;
+    forward-focus: key-handler;
+    key-handler := FocusScope {
+        key-released(event) => {
+            if event.text == Key.Escape {
+                close();
+                accept
+            }
+            reject
+        }
+    }
 }

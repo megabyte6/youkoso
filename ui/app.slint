@@ -1,24 +1,18 @@
-import { Palette, StyleMetrics, Switch, Button, LineEdit } from "std-widgets.slint";
-import { Settings, Theme } from "settings.slint";
+import { LineEdit, Palette, StyleMetrics } from "std-widgets.slint";
+import { Settings, SettingsUi, Theme } from "settings.slint";
 
-export { Settings, SettingsUi, Theme } from "settings.slint";
+export { Settings, Theme } from "settings.slint";
 
-export component AppUi inherits Window {
-    public function reload-theme() {
-        if (Settings.theme == Theme.dark) {
-            Palette.color-scheme = ColorScheme.dark;
-        } else if (Settings.theme == Theme.light) {
-            Palette.color-scheme = ColorScheme.light;
-        } else {
-            Palette.color-scheme = ColorScheme.unknown;
-        }
-    }
+enum Page {
+    home,
+    settings,
+}
 
-    callback open-settings <=> settings-button.clicked;
+component HomeUi {
+    callback open-settings;
 
-    title: "Youkoso";
-    preferred-width: 800px;
-    preferred-height: 600px;
+    width: 100%;
+    height: 100%;
 
     Image {
         source: @image-url("icons/settings-symbolic.svg");
@@ -29,7 +23,11 @@ export component AppUi inherits Window {
         height: 40px;
         padding: StyleMetrics.layout-padding;
 
-        settings-button := TouchArea {}
+        TouchArea {
+            clicked => {
+                open-settings();
+            }
+        }
     }
 
     LineEdit {
@@ -37,5 +35,39 @@ export component AppUi inherits Window {
         placeholder-text: "Enter RFID";
         width: 250px;
         height: 40px;
+    }
+}
+
+export component AppUi inherits Window {
+    public function reload-theme() {
+        if Settings.theme == Theme.dark {
+            Palette.color-scheme = ColorScheme.dark;
+        } else if Settings.theme == Theme.light {
+            Palette.color-scheme = ColorScheme.light;
+        } else {
+            Palette.color-scheme = ColorScheme.unknown;
+        }
+    }
+
+    in-out property <Page> currentPage: Page.home;
+
+    title: "Youkoso";
+    preferred-width: 800px;
+    preferred-height: 600px;
+
+    if currentPage == Page.home: HomeUi {
+        open-settings => {
+            currentPage = Page.settings;
+        }
+    }
+
+    if currentPage == Page.settings: SettingsUi {
+        init => {
+            self.focus();
+        }
+
+        close => {
+            currentPage = Page.home;
+        }
     }
 }

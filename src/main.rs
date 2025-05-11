@@ -38,6 +38,8 @@ struct State {
 }
 
 fn init(config: &Rc<RefCell<Config>>) -> State {
+    slint::set_xdg_app_id("youkoso").unwrap();
+
     let app_ui = AppUi::new().unwrap();
     let settings_ui = SettingsUi::new().unwrap();
 

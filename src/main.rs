@@ -48,7 +48,7 @@ fn init(config: &Rc<RefCell<Config>>) -> AppUi {
 
     app_ui
         .global::<Settings>()
-        .set_theme(match config.borrow().theme {
+        .set_theme(match config.try_borrow().unwrap().theme {
             config::Theme::System => ui::Theme::System,
             config::Theme::Dark => ui::Theme::Dark,
             config::Theme::Light => ui::Theme::Light,

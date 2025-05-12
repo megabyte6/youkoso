@@ -11,7 +11,7 @@ use reqwest::Client;
 
 slint::include_modules!();
 
-use slint_generatedAppUi as ui;
+use slint_generatedApp as ui;
 
 #[tokio::main]
 async fn main() -> Result<(), slint::PlatformError> {
@@ -24,21 +24,21 @@ async fn main() -> Result<(), slint::PlatformError> {
 
     let client = Client::new();
 
-    let app_ui = init(&config);
-    app_ui.run()?;
+    let ui = init(&config);
+    ui.run()?;
 
     Ok(())
 }
 
-fn init(config: &Rc<RefCell<Config>>) -> AppUi {
-    let app_ui = AppUi::new().unwrap();
+fn init(config: &Rc<RefCell<Config>>) -> App {
+    let ui = App::new().unwrap();
     slint::set_xdg_app_id("youkoso").unwrap();
 
-    app_ui.global::<Settings>().on_update_settings({
-        let app_ui = app_ui.as_weak();
+    ui.global::<Settings>().on_update_settings({
+        let ui = ui.as_weak();
         let config = Rc::clone(config);
         move || {
-            config.borrow_mut().theme = match app_ui.unwrap().global::<Settings>().get_theme() {
+            config.borrow_mut().theme = match ui.unwrap().global::<Settings>().get_theme() {
                 Theme::System => config::Theme::System,
                 Theme::Dark => config::Theme::Dark,
                 Theme::Light => config::Theme::Light,
@@ -46,14 +46,13 @@ fn init(config: &Rc<RefCell<Config>>) -> AppUi {
         }
     });
 
-    app_ui
-        .global::<Settings>()
+    ui.global::<Settings>()
         .set_theme(match config.try_borrow().unwrap().theme {
             config::Theme::System => ui::Theme::System,
             config::Theme::Dark => ui::Theme::Dark,
             config::Theme::Light => ui::Theme::Light,
         });
-    app_ui.invoke_reload_theme();
+    ui.invoke_reload_theme();
 
-    app_ui
+    ui
 }

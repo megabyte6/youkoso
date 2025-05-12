@@ -1,5 +1,5 @@
 import { LineEdit, Palette, StyleMetrics } from "std-widgets.slint";
-import { Settings, SettingsUi, Theme } from "settings.slint";
+import { Settings, SettingsPage, Theme } from "settings.slint";
 
 export { Settings, Theme } from "settings.slint";
 
@@ -8,7 +8,7 @@ enum Page {
     settings,
 }
 
-component HomeUi {
+component HomePage {
     callback open-settings;
 
     width: 100%;
@@ -38,7 +38,7 @@ component HomeUi {
     }
 }
 
-export component AppUi inherits Window {
+export component App inherits Window {
     public function reload-theme() {
         if Settings.theme == Theme.dark {
             Palette.color-scheme = ColorScheme.dark;
@@ -55,13 +55,13 @@ export component AppUi inherits Window {
     preferred-width: 800px;
     preferred-height: 600px;
 
-    if currentPage == Page.home: HomeUi {
+    if currentPage == Page.home: HomePage {
         open-settings => {
             currentPage = Page.settings;
         }
     }
 
-    if currentPage == Page.settings: SettingsUi {
+    if currentPage == Page.settings: SettingsPage {
         init => {
             self.focus();
         }

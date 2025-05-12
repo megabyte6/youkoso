@@ -14,7 +14,7 @@ slint::include_modules!();
 use slint_generatedApp as ui;
 
 #[tokio::main]
-async fn main() -> Result<(), slint::PlatformError> {
+async fn main() {
     let config = Rc::new(RefCell::new(
         config::load(Path::new("config.toml")).unwrap_or_else(|e| {
             eprintln!("Error: {e}");
@@ -25,9 +25,7 @@ async fn main() -> Result<(), slint::PlatformError> {
     let client = Client::new();
 
     let ui = init(&config);
-    ui.run()?;
-
-    Ok(())
+    ui.run().unwrap();
 }
 
 fn init(config: &Rc<RefCell<Config>>) -> App {

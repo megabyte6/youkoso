@@ -32,6 +32,21 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     let ui = App::new().unwrap();
     slint::set_xdg_app_id("youkoso").unwrap();
 
+    ui.global::<Settings>().on_reset_all({
+        let ui = ui.as_weak();
+        move || {
+            ui.unwrap().global::<Settings>().invoke_reset_theme();
+            ui.unwrap()
+                .global::<Settings>()
+                .invoke_reset_my_studio_email();
+            ui.unwrap()
+                .global::<Settings>()
+                .invoke_reset_my_studio_password();
+            ui.unwrap()
+                .global::<Settings>()
+                .invoke_reset_my_studio_company_id();
+        }
+    });
     ui.global::<Settings>().on_changed_theme({
         let ui = ui.as_weak();
         let config = Rc::clone(config);

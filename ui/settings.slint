@@ -1,4 +1,4 @@
-import { Button, ComboBox, GridBox, HorizontalBox, LineEdit, Palette, ScrollView, StyleMetrics } from "std-widgets.slint";
+import { Button, ComboBox, GridBox, HorizontalBox, LineEdit, Palette, ScrollView, StandardButton, StyleMetrics } from "std-widgets.slint";
 
 export enum Theme {
     system,
@@ -49,6 +49,8 @@ component Undoable inherits HorizontalBox {
 }
 
 export global Settings {
+    callback reset-all;
+
     in-out property <Theme> theme;
     callback changed-theme;
     callback reset-theme;
@@ -69,46 +71,11 @@ export global Settings {
 export component SettingsPage {
     width: 800px;
     height: 600px;
+    forward-focus: shortcut-handler;
 
     callback close;
 
-    forward-focus: key-handler;
-    key-handler := FocusScope {
-        key-released(event) => {
-            if event.text == Key.Escape {
-                close();
-                accept
-            }
-            reject
-        }
-    }
-
-    Rectangle {
-        x: root.width - self.width - self.padding;
-        y: self.padding;
-        width: 40px;
-        height: 40px;
-        padding: StyleMetrics.layout-padding;
-        border-width: 2px;
-        border-color: Palette.border;
-
-        Image {
-            source: @image-url("icons/window-close-symbolic.svg");
-            colorize: Palette.control-foreground;
-            width: parent.width;
-            height: parent.height;
-        }
-
-        TouchArea {
-            clicked => {
-                close();
-            }
-        }
-    }
-
     ScrollView {
-        height: 95%;
-
         GridBox {
             width: 80%;
             padding-top: StyleMetrics.layout-padding * 4;
@@ -241,6 +208,81 @@ export component SettingsPage {
                     }
                 }
             }
+        }
+    }
+
+    Rectangle {
+        x: root.width - self.width - self.padding;
+        y: self.padding;
+        width: 40px;
+        height: 40px;
+        padding: StyleMetrics.layout-padding;
+        border-width: 2px;
+        border-color: Palette.border;
+
+        Image {
+            source: @image-url("icons/window-close-symbolic.svg");
+            colorize: Palette.control-foreground;
+            width: parent.width;
+            height: parent.height;
+        }
+
+        TouchArea {
+            clicked => {
+                close();
+            }
+        }
+    }
+
+    Button {
+        text: "Reset All";
+        x: root.width - self.width - self.padding;
+        y: root.height - self.height - self.padding;
+        padding: StyleMetrics.layout-padding;
+
+        clicked => {
+            reset-all-popup.show();
+        }
+    }
+
+    reset-all-popup := PopupWindow {
+        x: root.width / 2 - background.width / 2;
+        y: root.height / 2 - background.height / 2;
+
+        background := Rectangle {
+            background: Palette.background;
+            border-color: Palette.border;
+            border-width: 3px;
+            border-radius: 10px;
+            width: dialog.width + StyleMetrics.layout-padding * 2;
+            height: dialog.height + StyleMetrics.layout-padding * 2;
+        }
+
+        dialog := Dialog {
+            Text {
+                text: "Reset all settings to their defaults?";
+            }
+
+            StandardButton {
+                kind: yes;
+                clicked => {
+                    Settings.reset-all();
+                }
+            }
+
+            StandardButton {
+                kind: no;
+            }
+        }
+    }
+
+    shortcut-handler := FocusScope {
+        key-released(event) => {
+            if event.text == Key.Escape {
+                close();
+                accept
+            }
+            reject
         }
     }
 }

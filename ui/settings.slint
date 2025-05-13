@@ -1,16 +1,77 @@
+import { Button, ComboBox, GridBox, HorizontalBox, LineEdit, Palette, ScrollView, StyleMetrics } from "std-widgets.slint";
+
 export enum Theme {
     system,
     dark,
     light,
 }
 
-export global Settings {
-    callback update-settings;
+component Separator {
+    in property <Orientation> orientation: horizontal;
+    property <length> overall-thickness: max(10px, 1phx);
+    property <length> line-thickness: max(1.2px, 1phx);
 
+    states [
+        horizontal when orientation == Orientation.horizontal: {
+            root.min-height: root.overall-thickness;
+            line.height: root.line-thickness;
+            line.width: root.width;
+            root.horizontal-stretch: 100%;
+            root.vertical-stretch: 0%;
+        }
+        vertical when orientation == Orientation.vertical: {
+            root.min-width: root.overall-thickness;
+            line.width: root.line-thickness;
+            line.height: root.height;
+            root.vertical-stretch: 100%;
+            root.horizontal-stretch: 0%;
+        }
+    ]
+
+    line := Rectangle {
+        background: Palette.border;
+        border-radius: line-thickness / 2;
+    }
+}
+
+component UndoButton inherits Button {
+    icon: @image-url("icons/edit-undo-symbolic.svg");
+    colorize-icon: true;
+    height: self.width;
+}
+
+component Undoable inherits HorizontalBox {
+    alignment: start;
+
+    callback undo-clicked <=> undo.clicked;
+
+    @children
+
+    undo := UndoButton { }
+}
+
+export global Settings {
     in-out property <Theme> theme;
+    callback changed-theme;
+    callback reset-theme;
+
+    in-out property <string> my-studio-email;
+    callback changed-my-studio-email;
+    callback reset-my-studio-email;
+
+    in-out property <string> my-studio-password;
+    callback changed-my-studio-password;
+    callback reset-my-studio-password;
+
+    in-out property <string> my-studio-company-id;
+    callback changed-my-studio-company-id;
+    callback reset-my-studio-company-id;
 }
 
 export component SettingsPage {
+    width: 800px;
+    height: 600px;
+
     callback close;
 
     forward-focus: key-handler;
@@ -21,6 +82,167 @@ export component SettingsPage {
                 accept
             }
             reject
+        }
+    }
+
+    Rectangle {
+        x: root.width - self.width - self.padding;
+        y: self.padding;
+        width: 40px;
+        height: 40px;
+        padding: StyleMetrics.layout-padding;
+        border-width: 2px;
+        border-color: Palette.border;
+
+        Image {
+            source: @image-url("icons/window-close-symbolic.svg");
+            colorize: Palette.control-foreground;
+            width: parent.width;
+            height: parent.height;
+        }
+
+        TouchArea {
+            clicked => {
+                close();
+            }
+        }
+    }
+
+    ScrollView {
+        height: 95%;
+
+        GridBox {
+            width: 80%;
+            padding-top: StyleMetrics.layout-padding * 4;
+            spacing-horizontal: 100px;
+
+            Row {
+                Text {
+                    text: "Settings";
+                    font-size: 25pt;
+                    font-weight: 800;
+                }
+            }
+
+            Row {
+                Separator {
+                    colspan: 2;
+                }
+            }
+
+            Row {
+                Text {
+                    text: "Theme";
+                    font-size: 12pt;
+                }
+
+                Undoable {
+                    undo-clicked => {
+                        Settings.reset-theme();
+                    }
+
+                    ComboBox {
+                        model: ["System", "Dark", "Light"];
+                        current-value: {
+                            if Settings.theme == Theme.dark {
+                                return "Dark";
+                            } else if Settings.theme == Theme.light {
+                                return "Light";
+                            } else {
+                                return "System";
+                            }
+                        }
+                        selected(current-value) => {
+                            if current-value == "Dark" {
+                                Settings.theme = Theme.dark;
+                            } else if current-value == "Light" {
+                                Settings.theme = Theme.light;
+                            } else {
+                                Settings.theme = Theme.system;
+                            }
+                            Settings.changed-theme();
+                        }
+                    }
+                }
+            }
+
+            Row {
+                Separator {
+                    colspan: 2;
+                }
+            }
+
+            Row {
+                Text {
+                    text: "MyStudio";
+                    font-size: 15pt;
+                }
+            }
+
+            Row {
+                Text {
+                    text: "Email";
+                    font-size: 12pt;
+                }
+
+                Undoable {
+                    undo-clicked => {
+                        Settings.reset-my-studio-email();
+                    }
+
+                    LineEdit {
+                        preferred-width: 300px;
+
+                        edited(text) => {
+                            Settings.my-studio-email = text;
+                            Settings.changed-my-studio-email();
+                        }
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    text: "Password";
+                    font-size: 12pt;
+                }
+
+                Undoable {
+                    undo-clicked => {
+                        Settings.reset-my-studio-password();
+                    }
+
+                    LineEdit {
+                        input-type: password;
+                        preferred-width: 300px;
+
+                        edited(text) => {
+                            Settings.my-studio-password = text;
+                            Settings.changed-my-studio-password();
+                        }
+                    }
+                }
+            }
+
+            Row {
+                Text {
+                    text: "Company ID";
+                    font-size: 12pt;
+                }
+
+                Undoable {
+                    undo-clicked => {
+                        Settings.reset-my-studio-company-id();
+                    }
+
+                    LineEdit {
+                        edited(text) => {
+                            Settings.my-studio-company-id = text;
+                            Settings.changed-my-studio-company-id();
+                        }
+                    }
+                }
+            }
         }
     }
 }

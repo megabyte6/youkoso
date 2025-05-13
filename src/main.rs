@@ -32,15 +32,109 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     let ui = App::new().unwrap();
     slint::set_xdg_app_id("youkoso").unwrap();
 
-    ui.global::<Settings>().on_update_settings({
+    ui.global::<Settings>().on_changed_theme({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
         move || {
-            config.borrow_mut().theme = match ui.unwrap().global::<Settings>().get_theme() {
-                Theme::System => config::Theme::System,
-                Theme::Dark => config::Theme::Dark,
-                Theme::Light => config::Theme::Light,
-            }
+            config.try_borrow_mut().unwrap().theme =
+                match ui.unwrap().global::<Settings>().get_theme() {
+                    Theme::System => config::Theme::System,
+                    Theme::Dark => config::Theme::Dark,
+                    Theme::Light => config::Theme::Light,
+                };
+            ui.unwrap().invoke_reload_theme();
+        }
+    });
+    ui.global::<Settings>().on_reset_theme({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().theme = Config::default().theme;
+            ui.unwrap()
+                .global::<Settings>()
+                .set_theme(match config.try_borrow().unwrap().theme {
+                    config::Theme::System => ui::Theme::System,
+                    config::Theme::Dark => ui::Theme::Dark,
+                    config::Theme::Light => ui::Theme::Light,
+                });
+            ui.unwrap().invoke_reload_theme();
+        }
+    });
+    ui.global::<Settings>().on_changed_my_studio_email({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().my_studio.email = ui
+                .unwrap()
+                .global::<Settings>()
+                .get_my_studio_email()
+                .into();
+        }
+    });
+    ui.global::<Settings>().on_reset_my_studio_email({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().my_studio.email = Config::default().my_studio.email;
+            ui.unwrap()
+                .global::<Settings>()
+                .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
+        }
+    });
+    ui.global::<Settings>().on_changed_my_studio_password({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().my_studio.password = ui
+                .unwrap()
+                .global::<Settings>()
+                .get_my_studio_password()
+                .into();
+        }
+    });
+    ui.global::<Settings>().on_reset_my_studio_password({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().my_studio.password =
+                Config::default().my_studio.password;
+            ui.unwrap().global::<Settings>().set_my_studio_password(
+                config
+                    .try_borrow()
+                    .unwrap()
+                    .my_studio
+                    .password
+                    .clone()
+                    .into(),
+            );
+        }
+    });
+    ui.global::<Settings>().on_changed_my_studio_company_id({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().my_studio.company_id = ui
+                .unwrap()
+                .global::<Settings>()
+                .get_my_studio_company_id()
+                .into();
+        }
+    });
+    ui.global::<Settings>().on_reset_my_studio_company_id({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().my_studio.company_id =
+                Config::default().my_studio.company_id;
+            ui.unwrap().global::<Settings>().set_my_studio_company_id(
+                config
+                    .try_borrow()
+                    .unwrap()
+                    .my_studio
+                    .company_id
+                    .clone()
+                    .into(),
+            );
         }
     });
 

@@ -9,15 +9,15 @@ enum Page {
 }
 
 component HomePage {
-    callback open-settings;
+    width: 800px;
+    height: 600px;
 
-    width: 100%;
-    height: 100%;
+    callback open-settings;
 
     Image {
         source: @image-url("icons/settings-symbolic.svg");
         colorize: Palette.control-foreground;
-        x: parent.width - self.width - self.padding;
+        x: root.width - self.width - self.padding;
         y: self.padding;
         width: 40px;
         height: 40px;
@@ -49,25 +49,55 @@ export component App inherits Window {
         }
     }
 
-    in-out property <Page> currentPage: Page.home;
+    in-out property <Page> currentPage: home;
+    property <float> home-opacity: 1;
+    animate home-opacity {
+        duration: 200ms;
+        easing: ease-in-out;
+    }
+    property <float> settings-opacity: 0;
+    animate settings-opacity {
+        duration: 200ms;
+        easing: ease-in-out;
+    }
 
-    title: "Youkoso";
+    title: {
+        if currentPage == Page.settings {
+            return "Youkoso - Settings";
+        } else {
+            return "Youkoso";
+        }
+    }
     preferred-width: 800px;
     preferred-height: 600px;
 
-    if currentPage == Page.home: HomePage {
+    HomePage {
+        width: 100%;
+        height: 100%;
+        opacity: home-opacity;
+        visible: home-opacity > 0;
+
         open-settings => {
             currentPage = Page.settings;
+            home-opacity = 0;
+            settings-opacity = 1;
         }
     }
 
-    if currentPage == Page.settings: SettingsPage {
+    SettingsPage {
+        width: 100%;
+        height: 100%;
+        opacity: settings-opacity;
+        visible: settings-opacity > 0;
+
         init => {
             self.focus();
         }
 
         close => {
             currentPage = Page.home;
+            home-opacity = 1;
+            settings-opacity = 0;
         }
     }
 }

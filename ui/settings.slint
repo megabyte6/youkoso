@@ -156,6 +156,7 @@ export component SettingsPage {
                     }
 
                     LineEdit {
+                        text: Settings.my-studio-email;
                         preferred-width: 300px;
 
                         edited(text) => {
@@ -179,6 +180,7 @@ export component SettingsPage {
 
                     LineEdit {
                         input-type: password;
+                        text: Settings.my-studio-password;
                         preferred-width: 300px;
 
                         edited(text) => {
@@ -201,6 +203,8 @@ export component SettingsPage {
                     }
 
                     LineEdit {
+                        text: Settings.my-studio-company-id;
+
                         edited(text) => {
                             Settings.my-studio-company-id = text;
                             Settings.changed-my-studio-company-id();

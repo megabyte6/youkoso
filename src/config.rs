@@ -1,10 +1,17 @@
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs, path::Path};
+use std::{
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     pub theme: Theme,
     pub my_studio: MyStudio,
+
+    #[serde(skip)]
+    config_path: PathBuf,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -20,6 +27,14 @@ pub struct MyStudio {
     pub email: String,
     pub password: String,
     pub company_id: String,
+}
+
+impl Config {
+    pub fn save(&self) -> Result<(), Box<dyn Error>> {
+        fs::write(&self.config_path, toml::to_string_pretty(self)?)?;
+
+        Ok(())
+    }
 }
 
 /// Loads the configuration from a TOML file at the specified path.
@@ -57,7 +72,7 @@ pub struct MyStudio {
 /// }
 /// ```
 pub fn load(config_path: &Path) -> Result<Config, Box<dyn Error>> {
-    let config: Config;
+    let mut config: Config;
 
     if config_path.exists() {
         let contents = fs::read_to_string(config_path)
@@ -82,6 +97,8 @@ pub fn load(config_path: &Path) -> Result<Config, Box<dyn Error>> {
             )
         })?;
     }
+
+    config.config_path = config_path.to_path_buf();
 
     Ok(config)
 }

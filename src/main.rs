@@ -11,6 +11,7 @@ use reqwest::Client;
 
 slint::include_modules!();
 
+use slint::CloseRequestResponse;
 use slint_generatedApp as ui;
 
 #[tokio::main]
@@ -160,6 +161,34 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
             config::Theme::Light => ui::Theme::Light,
         });
     ui.invoke_reload_theme();
+    ui.global::<Settings>()
+        .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
+    ui.global::<Settings>().set_my_studio_password(
+        config
+            .try_borrow()
+            .unwrap()
+            .my_studio
+            .password
+            .clone()
+            .into(),
+    );
+    ui.global::<Settings>().set_my_studio_company_id(
+        config
+            .try_borrow()
+            .unwrap()
+            .my_studio
+            .company_id
+            .clone()
+            .into(),
+    );
+
+    ui.window().on_close_requested({
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow().unwrap().save().unwrap();
+            CloseRequestResponse::HideWindow
+        }
+    });
 
     ui
 }

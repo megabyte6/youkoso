@@ -34,12 +34,6 @@ component Separator {
     }
 }
 
-component UndoButton inherits Button {
-    icon: @image-url("icons/edit-undo-symbolic.svg");
-    colorize-icon: true;
-    height: self.width;
-}
-
 component Undoable inherits HorizontalBox {
     alignment: start;
 
@@ -47,7 +41,11 @@ component Undoable inherits HorizontalBox {
 
     @children
 
-    undo := UndoButton { }
+    undo := Button {
+        icon: @image-url("icons/edit-undo-symbolic.svg");
+        colorize-icon: true;
+        height: self.width;
+    }
 }
 
 export global Settings {

@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    error::Error,
     fs,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
@@ -30,11 +30,34 @@ pub struct MyStudio {
 }
 
 impl Config {
-    pub fn save(&self) -> Result<(), Box<dyn Error>> {
-        fs::write(&self.config_path, toml::to_string_pretty(self)?)?;
+    pub fn save(&self) -> Result<()> {
+        fs::write(
+            &self.config_path,
+            toml::to_string_pretty(self).map_err(TomlError::Serialize)?,
+        )?;
 
         Ok(())
     }
+}
+
+type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Toml(#[from] TomlError),
+}
+
+#[derive(Debug, Error)]
+pub enum TomlError {
+    #[error(transparent)]
+    Serialize(#[from] toml::ser::Error),
+
+    #[error(transparent)]
+    Deserialize(#[from] toml::de::Error),
 }
 
 /// Loads the configuration from a TOML file at the specified path.
@@ -71,31 +94,16 @@ impl Config {
 ///     Err(e) => eprintln!("Failed to load configuration: {e}"),
 /// }
 /// ```
-pub fn load(config_path: &Path) -> Result<Config, Box<dyn Error>> {
+pub fn load(config_path: &Path) -> Result<Config> {
     let mut config: Config;
 
     if config_path.exists() {
-        let contents = fs::read_to_string(config_path)
-            .map_err(|e| format!("Could not read file `{}`\n{e}", config_path.display()))?;
-
-        config = toml::from_str(&contents).map_err(|e| {
-            format!(
-                "Unable to parse TOML config from `{}`\n{e}",
-                config_path.display()
-            )
-        })?;
+        let contents = fs::read_to_string(config_path)?;
+        config = toml::from_str(&contents).map_err(TomlError::Deserialize)?;
     } else {
         config = Config::default();
-
-        let default_config_toml = toml::to_string(&config)
-            .map_err(|e| format!("Failed to serialize default config into TOML\n{e}"))?;
-
-        fs::write(config_path, default_config_toml).map_err(|e| {
-            format!(
-                "Failed to write default config to `{}`\n{e}",
-                config_path.display()
-            )
-        })?;
+        let default_config = toml::to_string(&config).map_err(TomlError::Serialize)?;
+        fs::write(config_path, default_config)?;
     }
 
     config.config_path = config_path.to_path_buf();

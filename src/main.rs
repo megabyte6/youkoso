@@ -18,7 +18,7 @@ use slint_generatedApp as ui;
 async fn main() {
     let config = Rc::new(RefCell::new(
         config::load(Path::new("config.toml")).unwrap_or_else(|e| {
-            eprintln!("Error: {e}");
+            eprintln!("Error when loading config from 'config.toml': ");
             exit(1);
         }),
     ));

@@ -108,7 +108,9 @@ export component SettingsPage {
 
                     ComboBox {
                         model: ["System", "Dark", "Light"];
-                        current-value: {
+                        current-value: theme-value;
+
+                        property <string> theme-value: {
                             if Settings.theme == Theme.dark {
                                 return "Dark";
                             } else if Settings.theme == Theme.light {

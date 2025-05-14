@@ -1,51 +1,25 @@
-use core::fmt;
-
 use reqwest::Client;
 use serde_json::{Value, json};
+use thiserror::Error;
 
 use crate::config::Config;
 
 type Result<T> = std::result::Result<T, Error>;
 
 /// Represents errors that can occur in the `my_studio` module.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// An error returned by the API, such as missing fields or invalid requests.
-    Api(ApiError),
+    #[error(transparent)]
+    Api(#[from] ApiError),
+
     /// An HTTP error that occurred during a request, originating from the `reqwest` library.
-    Http(reqwest::Error),
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+
     /// A JSON parsing error, originating from the `serde_json` library.
-    Json(serde_json::Error),
-}
-
-impl std::error::Error for Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Http(error) => write!(f, "{error}"),
-            Self::Json(error) => write!(f, "{error}"),
-            Self::Api(api_error) => api_error.fmt(f),
-        }
-    }
-}
-
-impl From<ApiError> for Error {
-    fn from(error: ApiError) -> Self {
-        Error::Api(error)
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(error: reqwest::Error) -> Self {
-        Error::Http(error)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Self {
-        Error::Json(error)
-    }
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 /// Represents API-specific errors that can occur in the `my_studio` module.
@@ -80,44 +54,23 @@ impl From<serde_json::Error> for Error {
 ///
 /// println!("Error: {error}");
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ApiError {
-    InvalidRequest {
-        message: String,
-        url: String,
-    },
-    MissingField {
-        field: String,
-        url: String,
-    },
+    /// Represents an invalid request error returned by the API.
+    #[error("'{message}' received from call to {url}.")]
+    InvalidRequest { message: String, url: String },
+
+    /// Indicates that a required field is missing or invalid in the API response.
+    #[error("Missing or invalid field '{field}' in response from call to {url}.")]
+    MissingField { field: String, url: String },
+
+    /// Represents an unrecognized or unexpected value in the API response.
+    #[error("Unrecognized value '{value}' for field '{field}' in response from call to {url}.")]
     UnrecognizedValue {
         field: String,
         value: String,
         url: String,
     },
-}
-
-impl std::error::Error for ApiError {}
-
-impl fmt::Display for ApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidRequest { message, url } => {
-                write!(f, "`{message}` received from call to {url}.")
-            }
-            Self::MissingField {
-                field: field_name,
-                url,
-            } => write!(
-                f,
-                "Missing or invalid field '{field_name}' in response from call to {url}."
-            ),
-            Self::UnrecognizedValue { field, value, url } => write!(
-                f,
-                "Unrecognized value '{value}' for field '{field}' in response from call to {url}."
-            ),
-        }
-    }
 }
 
 /// Logs in to the MyStudio API.

@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use reqwest::Client;
 use serde_json::{Value, json};
 use thiserror::Error;
@@ -73,191 +75,209 @@ pub enum ApiError {
     },
 }
 
-/// Logs in to the MyStudio API.
-///
-/// This function sends a POST request to the MyStudio API to authenticate the user
-/// and log in. It uses the provided `Client` and `Config` to construct the request
-/// and handle the response.
-///
-/// # Arguments
-///
-/// * `client` - A `reqwest::Client` instance used to send the HTTP request.
-/// * `config` - A `Config` struct containing the necessary credentials (email, password)
-///   and company ID.
-///
-/// # Returns
-///
-/// Returns a `Result` containing `()` if the login is successful, or an `Error`
-/// if an error occurs during the request or response handling.
-///
-/// # Errors
-///
-/// This function can return the following errors:
-/// - `Error::Http` if an HTTP error occurs during the request.
-/// - `Error::Json` if the response cannot be parsed as valid JSON.
-/// - `Error::Api` if the API response contains an error, such as:
-///   - Missing or invalid fields in the response.
-///   - An unrecognized value in the response.
-///
-/// # Example
-///
-/// ```rust
-/// use reqwest::Client;
-/// use crate::config::Config;
-/// use crate::my_studio::login;
-///
-/// #[tokio::main]
-/// async fn main() {
-///     let client = Client::new();
-///     let config = Config {
-///         my_studio: MyStudio {
-///             email: "example@example.com".to_string(),
-///             password: "password123".to_string(),
-///             company_id: "12345".to_string(),
-///         },
-///     };
-///
-///     match login(client, config).await {
-///         Ok(_) => println!("Login successful!"),
-///         Err(e) => eprintln!("Error: {e}"),
-///     }
-/// }
-/// ```
-pub async fn login(client: Client, config: Config) -> Result<()> {
-    let request_url = "https://cn.mystudio.io/Api/v2/login";
-    let request_body = &json!({
-        "email": config.my_studio.email,
-        "password": config.my_studio.password,
-        "from_page": "attendance"
-    });
+pub struct HttpClient {
+    client: Client,
+    config: Rc<RefCell<Config>>,
+    session_token: Option<String>,
+}
 
-    let response: Value = client
-        .post(request_url)
-        .json(request_body)
-        .send()
-        .await?
-        .json()
-        .await?;
+impl HttpClient {
+    pub fn new(config: Rc<RefCell<Config>>) -> HttpClient {
+        Self {
+            client: Client::new(),
+            config,
+            session_token: None,
+        }
+    }
 
-    let status = response["status"].as_str().ok_or(ApiError::MissingField {
-        field: "status".to_owned(),
-        url: request_url.to_owned(),
-    })?;
+    /// Logs in to the MyStudio API.
+    ///
+    /// This function sends a POST request to the MyStudio API to authenticate the user
+    /// and log in. It uses the provided `Client` and `Config` to construct the request
+    /// and handle the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `client` - A `reqwest::Client` instance used to send the HTTP request.
+    /// * `config` - A `Config` struct containing the necessary credentials (email, password)
+    ///   and company ID.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing `()` if the login is successful, or an `Error`
+    /// if an error occurs during the request or response handling.
+    ///
+    /// # Errors
+    ///
+    /// This function can return the following errors:
+    /// - `Error::Http` if an HTTP error occurs during the request.
+    /// - `Error::Json` if the response cannot be parsed as valid JSON.
+    /// - `Error::Api` if the API response contains an error, such as:
+    ///   - Missing or invalid fields in the response.
+    ///   - An unrecognized value in the response.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use reqwest::Client;
+    /// use crate::config::Config;
+    /// use crate::my_studio::login;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let client = Client::new();
+    ///     let config = Config {
+    ///         my_studio: MyStudio {
+    ///             email: "example@example.com".to_string(),
+    ///             password: "password123".to_string(),
+    ///             company_id: "12345".to_string(),
+    ///         },
+    ///     };
+    ///
+    ///     match login(client, config).await {
+    ///         Ok(_) => println!("Login successful!"),
+    ///         Err(e) => eprintln!("Error: {e}"),
+    ///     }
+    /// }
+    /// ```
+    pub async fn login(&self) -> Result<()> {
+        let request_url = "https://cn.mystudio.io/Api/v2/login";
+        let request_body = &json!({
+            "email": self.config.try_borrow().unwrap().my_studio.email,
+            "password": self.config.try_borrow().unwrap().my_studio.password,
+            "from_page": "attendance"
+        });
 
-    match status {
-        "Success" => Ok(()),
-        "Failed" => {
-            let msg = response["status"]["msg"]
-                .as_str()
-                .ok_or(ApiError::MissingField {
+        let response: Value = self
+            .client
+            .post(request_url)
+            .json(request_body)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let status = response["status"].as_str().ok_or(ApiError::MissingField {
+            field: "status".to_owned(),
+            url: request_url.to_owned(),
+        })?;
+
+        match status {
+            "Success" => Ok(()),
+            "Failed" => {
+                let msg = response["status"]["msg"]
+                    .as_str()
+                    .ok_or(ApiError::MissingField {
+                        field: "msg".to_owned(),
+                        url: request_url.to_owned(),
+                    })?;
+                Err(Error::Api(ApiError::InvalidRequest {
+                    message: msg.to_owned(),
+                    url: request_url.to_owned(),
+                }))
+            }
+            _ => Err(Error::Api(ApiError::UnrecognizedValue {
+                field: "status".to_owned(),
+                value: status.to_owned(),
+                url: request_url.to_owned(),
+            })),
+        }
+    }
+
+    /// Retrieves a session token from the MyStudio API.
+    ///
+    /// This function sends a POST request to the MyStudio API to generate a session token
+    /// for attendance purposes. It uses the provided `Client` and `Config` to construct
+    /// the request and handle the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `client` - A `reqwest::Client` instance used to send the HTTP request.
+    /// * `config` - A `Config` struct containing the necessary credentials and company ID.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the session token as a `String` if successful, or an `Error`
+    /// if an error occurs during the request or response handling.
+    ///
+    /// # Errors
+    ///
+    /// This function can return the following errors:
+    /// - `Error::Http` if an HTTP error occurs during the request.
+    /// - `Error::Json` if the response cannot be parsed as valid JSON.
+    /// - `Error::Api` if the API response contains an error, such as:
+    ///   - Missing or invalid fields in the response.
+    ///   - An unrecognized value in the response.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use reqwest::Client;
+    /// use crate::config::Config;
+    /// use crate::my_studio::get_session_token;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let client = Client::new();
+    ///     let config = Config {
+    ///         my_studio: MyStudio {
+    ///             email: "example@example.com".to_string(),
+    ///             password: "password123".to_string(),
+    ///             company_id: "12345".to_string(),
+    ///         },
+    ///     };
+    ///
+    ///     match get_session_token(client, config).await {
+    ///         Ok(token) => println!("Session token: {token}"),
+    ///         Err(e) => eprintln!("Error: {e}"),
+    ///     }
+    /// }
+    /// ```
+    pub async fn aquire_session_token(&self, config: Config) -> Result<String> {
+        let request_url = "https://cn.mystudio.io/Api/v2/generateStudioAttendanceToken";
+        let request_body = &json!({
+            "company_id": config.my_studio.company_id,
+            "email": config.my_studio.email,
+            "from_page": "attendance"
+        });
+
+        let response: Value = self
+            .client
+            .post(request_url)
+            .json(request_body)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let status = response["status"].as_str().ok_or(ApiError::MissingField {
+            field: "status".to_owned(),
+            url: request_url.to_owned(),
+        })?;
+
+        match status {
+            "Success" => {
+                let msg = response["msg"].as_str().ok_or(ApiError::MissingField {
                     field: "msg".to_owned(),
                     url: request_url.to_owned(),
                 })?;
-            Err(Error::Api(ApiError::InvalidRequest {
-                message: msg.to_owned(),
+                Ok(msg.to_string())
+            }
+            "Failed" => {
+                let msg = response["msg"].as_str().ok_or(ApiError::MissingField {
+                    field: "msg".to_owned(),
+                    url: request_url.to_owned(),
+                })?;
+                Err(Error::Api(ApiError::InvalidRequest {
+                    message: msg.to_owned(),
+                    url: request_url.to_owned(),
+                }))
+            }
+            _ => Err(Error::Api(ApiError::UnrecognizedValue {
+                field: "status".to_owned(),
+                value: status.to_owned(),
                 url: request_url.to_owned(),
-            }))
+            })),
         }
-        _ => Err(Error::Api(ApiError::UnrecognizedValue {
-            field: "status".to_owned(),
-            value: status.to_owned(),
-            url: request_url.to_owned(),
-        })),
-    }
-}
-
-/// Retrieves a session token from the MyStudio API.
-///
-/// This function sends a POST request to the MyStudio API to generate a session token
-/// for attendance purposes. It uses the provided `Client` and `Config` to construct
-/// the request and handle the response.
-///
-/// # Arguments
-///
-/// * `client` - A `reqwest::Client` instance used to send the HTTP request.
-/// * `config` - A `Config` struct containing the necessary credentials and company ID.
-///
-/// # Returns
-///
-/// Returns a `Result` containing the session token as a `String` if successful, or an `Error`
-/// if an error occurs during the request or response handling.
-///
-/// # Errors
-///
-/// This function can return the following errors:
-/// - `Error::Http` if an HTTP error occurs during the request.
-/// - `Error::Json` if the response cannot be parsed as valid JSON.
-/// - `Error::Api` if the API response contains an error, such as:
-///   - Missing or invalid fields in the response.
-///   - An unrecognized value in the response.
-///
-/// # Example
-///
-/// ```rust
-/// use reqwest::Client;
-/// use crate::config::Config;
-/// use crate::my_studio::get_session_token;
-///
-/// #[tokio::main]
-/// async fn main() {
-///     let client = Client::new();
-///     let config = Config {
-///         my_studio: MyStudio {
-///             email: "example@example.com".to_string(),
-///             password: "password123".to_string(),
-///             company_id: "12345".to_string(),
-///         },
-///     };
-///
-///     match get_session_token(client, config).await {
-///         Ok(token) => println!("Session token: {token}"),
-///         Err(e) => eprintln!("Error: {e}"),
-///     }
-/// }
-/// ```
-pub async fn get_session_token(client: Client, config: Config) -> Result<String> {
-    let request_url = "https://cn.mystudio.io/Api/v2/generateStudioAttendanceToken";
-    let request_body = &json!({
-        "company_id": config.my_studio.company_id,
-        "email": config.my_studio.email,
-        "from_page": "attendance"
-    });
-
-    let response: Value = client
-        .post(request_url)
-        .json(request_body)
-        .send()
-        .await?
-        .json()
-        .await?;
-
-    let status = response["status"].as_str().ok_or(ApiError::MissingField {
-        field: "status".to_owned(),
-        url: request_url.to_owned(),
-    })?;
-
-    match status {
-        "Success" => {
-            let msg = response["msg"].as_str().ok_or(ApiError::MissingField {
-                field: "msg".to_owned(),
-                url: request_url.to_owned(),
-            })?;
-            Ok(msg.to_string())
-        }
-        "Failed" => {
-            let msg = response["msg"].as_str().ok_or(ApiError::MissingField {
-                field: "msg".to_owned(),
-                url: request_url.to_owned(),
-            })?;
-            Err(Error::Api(ApiError::InvalidRequest {
-                message: msg.to_owned(),
-                url: request_url.to_owned(),
-            }))
-        }
-        _ => Err(Error::Api(ApiError::UnrecognizedValue {
-            field: "status".to_owned(),
-            value: status.to_owned(),
-            url: request_url.to_owned(),
-        })),
     }
 }

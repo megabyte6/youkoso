@@ -7,10 +7,10 @@ mod my_studio;
 use std::{cell::RefCell, path::Path, process::exit, rc::Rc};
 
 use config::Config;
-use reqwest::Client;
 
 slint::include_modules!();
 
+use my_studio::HttpClient;
 use slint::CloseRequestResponse;
 use slint_generatedApp as ui;
 
@@ -18,12 +18,12 @@ use slint_generatedApp as ui;
 async fn main() {
     let config = Rc::new(RefCell::new(
         config::load(Path::new("config.toml")).unwrap_or_else(|e| {
-            eprintln!("Error when loading config from 'config.toml': ");
+            eprintln!("Error when loading config from 'config.toml': {e}");
             exit(1);
         }),
     ));
 
-    let client = Client::new();
+    let client = HttpClient::new(Rc::clone(&config));
 
     let ui = init(&config);
     ui.run().unwrap();

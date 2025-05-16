@@ -4,14 +4,12 @@
 mod config;
 mod my_studio;
 
-use std::{cell::RefCell, path::Path, process::exit, rc::Rc};
-
 use config::Config;
-
-slint::include_modules!();
-
 use my_studio::HttpClient;
 use slint::CloseRequestResponse;
+use std::{cell::RefCell, path::Path, process::exit, rc::Rc};
+
+slint::include_modules!();
 use slint_generatedApp as ui;
 
 #[tokio::main]

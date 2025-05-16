@@ -75,6 +75,46 @@ pub enum ApiError {
     },
 }
 
+/// An HTTP client for interacting with the MyStudio API.
+///
+/// This struct encapsulates the functionality needed to communicate with the MyStudio API,
+/// including authentication, session management, and request handling. It maintains a
+/// reusable HTTP client, configuration data, and the current session token state.
+///
+/// # Fields
+///
+/// * `client` - A `reqwest::Client` instance used for making HTTP requests to the API.
+/// * `config` - A shared, mutable reference to a `Config` struct containing authentication
+///   credentials and other settings.
+/// * `session_token` - An optional String that stores the session token after successful
+///   authentication.
+///
+/// # Examples
+///
+/// ```rust
+/// use std::cell::RefCell;
+/// use std::rc::Rc;
+/// use crate::config::{Config, MyStudio};
+/// use crate::my_studio::HttpClient;
+///
+/// // Create a configuration
+/// let config = Config {
+///     my_studio: MyStudio {
+///         email: "example@example.com".to_string(),
+///         password: "password123".to_string(),
+///         company_id: "12345".to_string(),
+///     },
+///     // other config fields...
+/// };
+///
+/// // Create a shared reference to the config
+/// let config_rc = Rc::new(RefCell::new(config));
+///
+/// // Create the HTTP client
+/// let client = HttpClient::new(config_rc);
+///
+/// // Use the client to make API calls
+/// ```
 pub struct HttpClient {
     client: Client,
     config: Rc<RefCell<Config>>,
@@ -82,6 +122,41 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
+    /// Creates a new HTTP client for interacting with the MyStudio API.
+    ///
+    /// This constructor initializes an `HttpClient` instance with the provided configuration.
+    /// It creates a new `reqwest::Client` for making HTTP requests and initializes the
+    /// session token as `None`. The session token will be populated after a successful login
+    /// or token acquisition.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A shared, mutable reference to a `Config` struct wrapped in `Rc<RefCell<>>`,
+    ///   containing the necessary credentials and settings for API authentication.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `HttpClient` instance configured with the provided settings.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::cell::RefCell;
+    /// use std::rc::Rc;
+    /// use crate::config::{Config, MyStudio};
+    /// use crate::my_studio::HttpClient;
+    ///
+    /// let config = Config {
+    ///     my_studio: MyStudio {
+    ///         email: "example@example.com".to_string(),
+    ///         password: "password123".to_string(),
+    ///         company_id: "12345".to_string(),
+    ///     },
+    /// };
+    ///
+    /// let config_rc = Rc::new(RefCell::new(config));
+    /// let client = HttpClient::new(config_rc);
+    /// ```
     pub fn new(config: Rc<RefCell<Config>>) -> HttpClient {
         Self {
             client: Client::new(),
@@ -92,15 +167,8 @@ impl HttpClient {
 
     /// Logs in to the MyStudio API.
     ///
-    /// This function sends a POST request to the MyStudio API to authenticate the user
-    /// and log in. It uses the provided `Client` and `Config` to construct the request
-    /// and handle the response.
-    ///
-    /// # Arguments
-    ///
-    /// * `client` - A `reqwest::Client` instance used to send the HTTP request.
-    /// * `config` - A `Config` struct containing the necessary credentials (email, password)
-    ///   and company ID.
+    /// This method sends a POST request to the MyStudio API to authenticate the user
+    /// and log in. It uses the client instance and configuration stored in the `HttpClient`.
     ///
     /// # Returns
     ///
@@ -109,7 +177,7 @@ impl HttpClient {
     ///
     /// # Errors
     ///
-    /// This function can return the following errors:
+    /// This method can return the following errors:
     /// - `Error::Http` if an HTTP error occurs during the request.
     /// - `Error::Json` if the response cannot be parsed as valid JSON.
     /// - `Error::Api` if the API response contains an error, such as:
@@ -119,13 +187,13 @@ impl HttpClient {
     /// # Example
     ///
     /// ```rust
-    /// use reqwest::Client;
-    /// use crate::config::Config;
-    /// use crate::my_studio::login;
+    /// use std::cell::RefCell;
+    /// use std::rc::Rc;
+    /// use crate::config::{Config, MyStudio};
+    /// use crate::my_studio::HttpClient;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let client = Client::new();
     ///     let config = Config {
     ///         my_studio: MyStudio {
     ///             email: "example@example.com".to_string(),
@@ -133,11 +201,14 @@ impl HttpClient {
     ///             company_id: "12345".to_string(),
     ///         },
     ///     };
+    ///     
+    ///     let config_rc = Rc::new(RefCell::new(config));
+    ///     let client = HttpClient::new(config_rc);
     ///
-    ///     match login(client, config).await {
+    ///     match client.login().await {
     ///         Ok(_) => println!("Login successful!"),
     ///         Err(e) => eprintln!("Error: {e}"),
-    ///     }
+    ///     };
     /// }
     /// ```
     pub async fn login(&self) -> Result<()> {
@@ -186,13 +257,12 @@ impl HttpClient {
 
     /// Retrieves a session token from the MyStudio API.
     ///
-    /// This function sends a POST request to the MyStudio API to generate a session token
-    /// for attendance purposes. It uses the provided `Client` and `Config` to construct
-    /// the request and handle the response.
+    /// This method sends a POST request to the MyStudio API to generate a session token
+    /// for attendance purposes. It uses the client instance stored in the `HttpClient`
+    /// and the provided `Config` parameter.
     ///
     /// # Arguments
     ///
-    /// * `client` - A `reqwest::Client` instance used to send the HTTP request.
     /// * `config` - A `Config` struct containing the necessary credentials and company ID.
     ///
     /// # Returns
@@ -202,7 +272,7 @@ impl HttpClient {
     ///
     /// # Errors
     ///
-    /// This function can return the following errors:
+    /// This method can return the following errors:
     /// - `Error::Http` if an HTTP error occurs during the request.
     /// - `Error::Json` if the response cannot be parsed as valid JSON.
     /// - `Error::Api` if the API response contains an error, such as:
@@ -212,13 +282,13 @@ impl HttpClient {
     /// # Example
     ///
     /// ```rust
-    /// use reqwest::Client;
-    /// use crate::config::Config;
-    /// use crate::my_studio::get_session_token;
+    /// use std::cell::RefCell;
+    /// use std::rc::Rc;
+    /// use crate::config::{Config, MyStudio};
+    /// use crate::my_studio::HttpClient;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let client = Client::new();
     ///     let config = Config {
     ///         my_studio: MyStudio {
     ///             email: "example@example.com".to_string(),
@@ -226,11 +296,14 @@ impl HttpClient {
     ///             company_id: "12345".to_string(),
     ///         },
     ///     };
+    ///     
+    ///     let config_rc = Rc::new(RefCell::new(config.clone()));
+    ///     let client = HttpClient::new(config_rc);
     ///
-    ///     match get_session_token(client, config).await {
+    ///     match client.aquire_session_token(config).await {
     ///         Ok(token) => println!("Session token: {token}"),
     ///         Err(e) => eprintln!("Error: {e}"),
-    ///     }
+    ///     };
     /// }
     /// ```
     pub async fn aquire_session_token(&self, config: Config) -> Result<String> {

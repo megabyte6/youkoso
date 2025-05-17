@@ -211,7 +211,7 @@ impl HttpClient {
     ///     };
     /// }
     /// ```
-    pub async fn login(&self) -> Result<()> {
+    pub async fn _login(&self) -> Result<()> {
         let request_url = "https://cn.mystudio.io/Api/v2/login";
         let request_body = &json!({
             "email": self.config.try_borrow().unwrap().my_studio.email,

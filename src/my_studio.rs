@@ -53,12 +53,7 @@ impl HttpClient {
     /// Retrieves a session token from the MyStudio API.
     ///
     /// This method sends a POST request to the MyStudio API to generate a session token
-    /// for attendance purposes. It uses the client instance stored in the `HttpClient`
-    /// and the provided `Config` parameter.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - A `Config` struct containing the necessary credentials and company ID.
+    /// for attendance purposes. It uses the client instance stored in the `HttpClient`.
     ///
     /// # Returns
     ///
@@ -73,11 +68,11 @@ impl HttpClient {
     /// - `Error::Api` if the API response contains an error, such as:
     ///   - Missing or invalid fields in the response.
     ///   - An unrecognized value in the response.
-    pub async fn aquire_session_token(&self, config: Config) -> Result<String> {
+    pub async fn aquire_session_token(&self) -> Result<String> {
         let request_url = "https://cn.mystudio.io/Api/v2/generateStudioAttendanceToken";
         let request_body = &json!({
-            "company_id": config.my_studio.company_id,
-            "email": config.my_studio.email,
+            "company_id": self.config.try_borrow().unwrap().my_studio.company_id,
+            "email": self.config.try_borrow().unwrap().my_studio.email,
             "from_page": "attendance"
         });
 

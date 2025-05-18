@@ -20,33 +20,6 @@ use crate::config::Config;
 ///   credentials and other settings.
 /// * `session_token` - An optional String that stores the session token after successful
 ///   authentication.
-///
-/// # Examples
-///
-/// ```rust
-/// use std::cell::RefCell;
-/// use std::rc::Rc;
-/// use crate::config::{Config, MyStudio};
-/// use crate::my_studio::HttpClient;
-///
-/// // Create a configuration
-/// let config = Config {
-///     my_studio: MyStudio {
-///         email: "example@example.com".to_string(),
-///         password: "password123".to_string(),
-///         company_id: "12345".to_string(),
-///     },
-///     // other config fields...
-/// };
-///
-/// // Create a shared reference to the config
-/// let config_rc = Rc::new(RefCell::new(config));
-///
-/// // Create the HTTP client
-/// let client = HttpClient::new(config_rc);
-///
-/// // Use the client to make API calls
-/// ```
 pub struct HttpClient {
     client: Client,
     config: Rc<RefCell<Config>>,
@@ -69,26 +42,6 @@ impl HttpClient {
     /// # Returns
     ///
     /// Returns a new `HttpClient` instance configured with the provided settings.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use std::cell::RefCell;
-    /// use std::rc::Rc;
-    /// use crate::config::{Config, MyStudio};
-    /// use crate::my_studio::HttpClient;
-    ///
-    /// let config = Config {
-    ///     my_studio: MyStudio {
-    ///         email: "example@example.com".to_string(),
-    ///         password: "password123".to_string(),
-    ///         company_id: "12345".to_string(),
-    ///     },
-    /// };
-    ///
-    /// let config_rc = Rc::new(RefCell::new(config));
-    /// let client = HttpClient::new(config_rc);
-    /// ```
     pub fn new(config: Rc<RefCell<Config>>) -> HttpClient {
         Self {
             client: Client::new(),
@@ -115,34 +68,6 @@ impl HttpClient {
     /// - `Error::Api` if the API response contains an error, such as:
     ///   - Missing or invalid fields in the response.
     ///   - An unrecognized value in the response.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use std::cell::RefCell;
-    /// use std::rc::Rc;
-    /// use crate::config::{Config, MyStudio};
-    /// use crate::my_studio::HttpClient;
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let config = Config {
-    ///         my_studio: MyStudio {
-    ///             email: "example@example.com".to_string(),
-    ///             password: "password123".to_string(),
-    ///             company_id: "12345".to_string(),
-    ///         },
-    ///     };
-    ///     
-    ///     let config_rc = Rc::new(RefCell::new(config));
-    ///     let client = HttpClient::new(config_rc);
-    ///
-    ///     match client.login().await {
-    ///         Ok(_) => println!("Login successful!"),
-    ///         Err(e) => eprintln!("Error: {e}"),
-    ///     };
-    /// }
-    /// ```
     pub async fn _login(&self) -> Result<()> {
         let request_url = "https://cn.mystudio.io/Api/v2/login";
         let request_body = &json!({
@@ -210,34 +135,6 @@ impl HttpClient {
     /// - `Error::Api` if the API response contains an error, such as:
     ///   - Missing or invalid fields in the response.
     ///   - An unrecognized value in the response.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use std::cell::RefCell;
-    /// use std::rc::Rc;
-    /// use crate::config::{Config, MyStudio};
-    /// use crate::my_studio::HttpClient;
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let config = Config {
-    ///         my_studio: MyStudio {
-    ///             email: "example@example.com".to_string(),
-    ///             password: "password123".to_string(),
-    ///             company_id: "12345".to_string(),
-    ///         },
-    ///     };
-    ///     
-    ///     let config_rc = Rc::new(RefCell::new(config.clone()));
-    ///     let client = HttpClient::new(config_rc);
-    ///
-    ///     match client.aquire_session_token(config).await {
-    ///         Ok(token) => println!("Session token: {token}"),
-    ///         Err(e) => eprintln!("Error: {e}"),
-    ///     };
-    /// }
-    /// ```
     pub async fn aquire_session_token(&self, config: Config) -> Result<String> {
         let request_url = "https://cn.mystudio.io/Api/v2/generateStudioAttendanceToken";
         let request_body = &json!({

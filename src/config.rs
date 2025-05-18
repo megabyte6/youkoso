@@ -18,29 +18,6 @@ use std::{
 /// * `theme` - The theme setting for the application's user interface.
 /// * `my_studio` - Authentication credentials and settings for the MyStudio API.
 /// * `config_path` - The path to the configuration file (not serialized to TOML).
-///
-/// # Example
-///
-/// ```rust
-/// use std::path::Path;
-/// use crate::config::{Config, load, Theme, MyStudio};
-///
-/// // Load an existing configuration or create a default one
-/// let config_path = Path::new("config.toml");
-/// let mut config = load(config_path).unwrap_or_default();
-///
-/// // Modify configuration values
-/// config.theme = Theme::Dark;
-/// config.my_studio = MyStudio {
-///     email: "user@example.com".to_string(),
-///     password: "secure_password".to_string(),
-///     company_id: "12345".to_string(),
-/// };
-///
-/// // Save the updated configuration
-/// if let Err(e) = config.save() {
-///     eprintln!("Failed to save configuration: {}", e);
-/// }
 /// ```
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
@@ -61,23 +38,6 @@ pub struct Config {
 /// * `System` - Uses the operating system's theme preference (default).
 /// * `Dark` - Uses a dark color scheme with light text on dark backgrounds.
 /// * `Light` - Uses a light color scheme with dark text on light backgrounds.
-///
-/// # Example
-///
-/// ```rust
-/// use crate::config::Theme;
-///
-/// // Using the default theme (System)
-/// let system_theme = Theme::default();
-///
-/// // Explicitly selecting a theme
-/// let dark_theme = Theme::Dark;
-/// let light_theme = Theme::Light;
-///
-/// // Using in configuration
-/// let mut config = Config::default();
-/// config.theme = Theme::Dark;
-/// ```
 #[derive(Serialize, Deserialize, Default)]
 pub enum Theme {
     #[default]
@@ -96,20 +56,6 @@ pub enum Theme {
 /// * `email` - The user's email address used for authentication.
 /// * `password` - The user's password used for authentication.
 /// * `company_id` - The identifier for the user's company within the MyStudio system.
-///
-/// # Example
-///
-/// ```rust
-/// use crate::config::MyStudio;
-///
-/// let credentials = MyStudio {
-///     email: "user@example.com".to_string(),
-///     password: "secure_password".to_string(),
-///     company_id: "12345".to_string(),
-/// };
-///
-/// // Use the credentials for API authentication
-/// ```
 #[derive(Serialize, Deserialize, Default)]
 pub struct MyStudio {
     pub email: String,
@@ -134,23 +80,6 @@ impl Config {
     /// This method can return the following errors:
     /// - `Error::Toml` if the configuration cannot be serialized to TOML.
     /// - `Error::Io` if the file cannot be written to disk.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use std::path::Path;
-    /// use crate::config::load;
-    ///
-    /// let config_path = Path::new("config.toml");
-    /// let mut config = load(config_path).unwrap_or_default();
-    /// config.theme = Theme::Dark;
-    ///
-    /// if let Err(e) = config.save() {
-    ///     eprintln!("Failed to save configuration: {}", e);
-    /// } else {
-    ///     println!("Configuration saved successfully");
-    /// }
-    /// ```
     pub fn save(&self) -> Result<()> {
         fs::write(
             &self.config_path,
@@ -182,19 +111,6 @@ impl Config {
 /// - If the file contents cannot be parsed as valid TOML.
 /// - If the default configuration cannot be serialized to TOML.
 /// - If the default configuration cannot be written to the specified path.
-///
-/// # Example
-///
-/// ```rust
-/// use std::path::Path;
-/// use crate::config::load;
-///
-/// let config_path = Path::new("config.toml");
-/// match load(config_path) {
-///     Ok(config) => println!("Configuration loaded successfully!"),
-///     Err(e) => eprintln!("Failed to load configuration: {e}"),
-/// };
-/// ```
 pub fn load(config_path: &Path) -> Result<Config> {
     let mut config: Config;
 

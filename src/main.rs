@@ -40,9 +40,6 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
                 .invoke_reset_my_studio_email();
             ui.unwrap()
                 .global::<Settings>()
-                .invoke_reset_my_studio_password();
-            ui.unwrap()
-                .global::<Settings>()
                 .invoke_reset_my_studio_company_id();
         }
     });
@@ -95,34 +92,6 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
                 .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
         }
     });
-    ui.global::<Settings>().on_changed_my_studio_password({
-        let ui = ui.as_weak();
-        let config = Rc::clone(config);
-        move || {
-            config.try_borrow_mut().unwrap().my_studio.password = ui
-                .unwrap()
-                .global::<Settings>()
-                .get_my_studio_password()
-                .into();
-        }
-    });
-    ui.global::<Settings>().on_reset_my_studio_password({
-        let ui = ui.as_weak();
-        let config = Rc::clone(config);
-        move || {
-            config.try_borrow_mut().unwrap().my_studio.password =
-                Config::default().my_studio.password;
-            ui.unwrap().global::<Settings>().set_my_studio_password(
-                config
-                    .try_borrow()
-                    .unwrap()
-                    .my_studio
-                    .password
-                    .clone()
-                    .into(),
-            );
-        }
-    });
     ui.global::<Settings>().on_changed_my_studio_company_id({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
@@ -161,15 +130,6 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     ui.invoke_reload_theme();
     ui.global::<Settings>()
         .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
-    ui.global::<Settings>().set_my_studio_password(
-        config
-            .try_borrow()
-            .unwrap()
-            .my_studio
-            .password
-            .clone()
-            .into(),
-    );
     ui.global::<Settings>().set_my_studio_company_id(
         config
             .try_borrow()

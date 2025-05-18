@@ -54,12 +54,10 @@ pub enum Theme {
 /// # Fields
 ///
 /// * `email` - The user's email address used for authentication.
-/// * `password` - The user's password used for authentication.
 /// * `company_id` - The identifier for the user's company within the MyStudio system.
 #[derive(Serialize, Deserialize, Default)]
 pub struct MyStudio {
     pub email: String,
-    pub password: String,
     pub company_id: String,
 }
 

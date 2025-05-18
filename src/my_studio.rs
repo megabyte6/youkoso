@@ -50,68 +50,6 @@ impl HttpClient {
         }
     }
 
-    /// Logs in to the MyStudio API.
-    ///
-    /// This method sends a POST request to the MyStudio API to authenticate the user
-    /// and log in. It uses the client instance and configuration stored in the `HttpClient`.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing `()` if the login is successful, or an `Error`
-    /// if an error occurs during the request or response handling.
-    ///
-    /// # Errors
-    ///
-    /// This method can return the following errors:
-    /// - `Error::Http` if an HTTP error occurs during the request.
-    /// - `Error::Json` if the response cannot be parsed as valid JSON.
-    /// - `Error::Api` if the API response contains an error, such as:
-    ///   - Missing or invalid fields in the response.
-    ///   - An unrecognized value in the response.
-    pub async fn _login(&self) -> Result<()> {
-        let request_url = "https://cn.mystudio.io/Api/v2/login";
-        let request_body = &json!({
-            "email": self.config.try_borrow().unwrap().my_studio.email,
-            "password": self.config.try_borrow().unwrap().my_studio.password,
-            "from_page": "attendance"
-        });
-
-        let response: Value = self
-            .client
-            .post(request_url)
-            .json(request_body)
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        let status = response["status"].as_str().ok_or(ApiError::MissingField {
-            field: "status".to_owned(),
-            url: request_url.to_owned(),
-        })?;
-
-        match status {
-            "Success" => Ok(()),
-            "Failed" => {
-                let msg = response["status"]["msg"]
-                    .as_str()
-                    .ok_or(ApiError::MissingField {
-                        field: "msg".to_owned(),
-                        url: request_url.to_owned(),
-                    })?;
-                Err(Error::Api(ApiError::InvalidRequest {
-                    message: msg.to_owned(),
-                    url: request_url.to_owned(),
-                }))
-            }
-            _ => Err(Error::Api(ApiError::UnrecognizedValue {
-                field: "status".to_owned(),
-                value: status.to_owned(),
-                url: request_url.to_owned(),
-            })),
-        }
-    }
-
     /// Retrieves a session token from the MyStudio API.
     ///
     /// This method sends a POST request to the MyStudio API to generate a session token

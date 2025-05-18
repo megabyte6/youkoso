@@ -59,10 +59,6 @@ export global Settings {
     callback changed-my-studio-email;
     callback reset-my-studio-email;
 
-    in-out property <string> my-studio-password;
-    callback changed-my-studio-password;
-    callback reset-my-studio-password;
-
     in-out property <string> my-studio-company-id;
     callback changed-my-studio-company-id;
     callback reset-my-studio-company-id;
@@ -164,30 +160,6 @@ export component SettingsPage {
                         edited(text) => {
                             Settings.my-studio-email = text;
                             Settings.changed-my-studio-email();
-                        }
-                    }
-                }
-            }
-
-            Row {
-                Text {
-                    text: "Password";
-                    font-size: 10pt;
-                }
-
-                Undoable {
-                    undo-clicked => {
-                        Settings.reset-my-studio-password();
-                    }
-
-                    LineEdit {
-                        input-type: password;
-                        text: Settings.my-studio-password;
-                        preferred-width: 300px;
-
-                        edited(text) => {
-                            Settings.my-studio-password = text;
-                            Settings.changed-my-studio-password();
                         }
                     }
                 }

@@ -35,11 +35,16 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     ui.global::<Settings>().on_reset_all({
         let ui = ui.as_weak();
         move || {
-            ui.unwrap().global::<Settings>().invoke_reset_theme();
-            ui.unwrap()
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .invoke_reset_theme();
+            ui.upgrade()
+                .unwrap()
                 .global::<Settings>()
                 .invoke_reset_my_studio_email();
-            ui.unwrap()
+            ui.upgrade()
+                .unwrap()
                 .global::<Settings>()
                 .invoke_reset_my_studio_company_id();
         }
@@ -49,12 +54,12 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
         let config = Rc::clone(config);
         move || {
             config.try_borrow_mut().unwrap().theme =
-                match ui.unwrap().global::<Settings>().get_theme() {
+                match ui.upgrade().unwrap().global::<Settings>().get_theme() {
                     Theme::System => config::Theme::System,
                     Theme::Dark => config::Theme::Dark,
                     Theme::Light => config::Theme::Light,
                 };
-            ui.unwrap().invoke_reload_theme();
+            ui.upgrade().unwrap().invoke_reload_theme();
         }
     });
     ui.global::<Settings>().on_reset_theme({
@@ -62,14 +67,14 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
         let config = Rc::clone(config);
         move || {
             config.try_borrow_mut().unwrap().theme = Config::default().theme;
-            ui.unwrap()
-                .global::<Settings>()
-                .set_theme(match config.try_borrow().unwrap().theme {
+            ui.upgrade().unwrap().global::<Settings>().set_theme(
+                match config.try_borrow().unwrap().theme {
                     config::Theme::System => ui::Theme::System,
                     config::Theme::Dark => ui::Theme::Dark,
                     config::Theme::Light => ui::Theme::Light,
-                });
-            ui.unwrap().invoke_reload_theme();
+                },
+            );
+            ui.upgrade().unwrap().invoke_reload_theme();
         }
     });
     ui.global::<Settings>().on_changed_my_studio_email({
@@ -77,6 +82,7 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
         let config = Rc::clone(config);
         move || {
             config.try_borrow_mut().unwrap().my_studio.email = ui
+                .upgrade()
                 .unwrap()
                 .global::<Settings>()
                 .get_my_studio_email()
@@ -88,7 +94,8 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
         let config = Rc::clone(config);
         move || {
             config.try_borrow_mut().unwrap().my_studio.email = Config::default().my_studio.email;
-            ui.unwrap()
+            ui.upgrade()
+                .unwrap()
                 .global::<Settings>()
                 .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
         }
@@ -98,6 +105,7 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
         let config = Rc::clone(config);
         move || {
             config.try_borrow_mut().unwrap().my_studio.company_id = ui
+                .upgrade()
                 .unwrap()
                 .global::<Settings>()
                 .get_my_studio_company_id()
@@ -110,15 +118,18 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
         move || {
             config.try_borrow_mut().unwrap().my_studio.company_id =
                 Config::default().my_studio.company_id;
-            ui.unwrap().global::<Settings>().set_my_studio_company_id(
-                config
-                    .try_borrow()
-                    .unwrap()
-                    .my_studio
-                    .company_id
-                    .clone()
-                    .into(),
-            );
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .set_my_studio_company_id(
+                    config
+                        .try_borrow()
+                        .unwrap()
+                        .my_studio
+                        .company_id
+                        .clone()
+                        .into(),
+                );
         }
     });
 

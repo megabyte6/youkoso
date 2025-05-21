@@ -72,8 +72,8 @@ impl HttpClient {
     pub async fn aquire_session_token(&self) -> Result<String> {
         let request_url = "https://cn.mystudio.io/Api/v2/generateStudioAttendanceToken";
         let request_body = &json!({
-            "company_id": self.config.try_borrow().unwrap().my_studio.company_id,
-            "email": self.config.try_borrow().unwrap().my_studio.email,
+            "company_id": self.config.try_borrow()?.my_studio.company_id,
+            "email": self.config.try_borrow()?.my_studio.email,
             "from_page": "attendance"
         });
 

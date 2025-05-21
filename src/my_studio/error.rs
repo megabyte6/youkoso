@@ -9,6 +9,11 @@ pub enum Error {
     #[error(transparent)]
     Api(#[from] ApiError),
 
+    /// A borrowing error that occurs when attempting to borrow from a `RefCell` that is already borrowed, originating
+    /// from the Rust standard library.
+    #[error(transparent)]
+    Borrow(#[from] std::cell::BorrowError),
+
     /// An HTTP error that occurred during a request, originating from the `reqwest` library.
     #[error(transparent)]
     Http(#[from] reqwest::Error),

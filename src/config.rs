@@ -7,6 +7,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::xlsx::ColumnIndex;
+
 /// Configuration for the application.
 ///
 /// This struct represents the application's configuration, which can be serialized to
@@ -23,6 +25,7 @@ use std::{
 pub struct Config {
     pub theme: Theme,
     pub my_studio: MyStudio,
+    pub student_sheet: StudentSheet,
 
     #[serde(skip)]
     config_path: PathBuf,
@@ -59,6 +62,30 @@ pub enum Theme {
 pub struct MyStudio {
     pub email: String,
     pub company_id: String,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct StudentSheet {
+    pub filepath: PathBuf,
+    pub sheet_name: String,
+    pub name: ColumnIndex,
+    pub rfid: ColumnIndex,
+    pub immediate_sign_in: ImmediateSignIn,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ImmediateSignIn {
+    pub column: ColumnIndex,
+    pub enabled_symbol: String,
+}
+
+impl Default for ImmediateSignIn {
+    fn default() -> Self {
+        Self {
+            column: Default::default(),
+            enabled_symbol: "TRUE".to_owned(),
+        }
+    }
 }
 
 impl Config {

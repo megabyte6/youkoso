@@ -3,6 +3,7 @@
 
 mod config;
 mod my_studio;
+mod xlsx;
 
 use config::Config;
 use my_studio::HttpClient;

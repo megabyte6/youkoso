@@ -64,7 +64,7 @@ pub struct MyStudio {
     pub company_id: String,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StudentSheet {
     pub filepath: PathBuf,
     pub sheet_name: String,
@@ -73,7 +73,7 @@ pub struct StudentSheet {
     pub immediate_sign_in: ImmediateSignIn,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImmediateSignIn {
     pub column: ColumnIndex,
     pub enabled_symbol: String,

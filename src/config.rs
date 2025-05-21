@@ -25,7 +25,7 @@ use crate::xlsx::ColumnIndex;
 pub struct Config {
     pub theme: Theme,
     pub my_studio: MyStudio,
-    pub student_sheet: StudentSheet,
+    pub student_data: StudentData,
 
     #[serde(skip)]
     config_path: PathBuf,
@@ -65,11 +65,11 @@ pub struct MyStudio {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct StudentSheet {
+pub struct StudentData {
     pub filepath: PathBuf,
     pub sheet_name: String,
-    pub name: ColumnIndex,
-    pub rfid: ColumnIndex,
+    pub name_column: ColumnIndex,
+    pub rfid_column: ColumnIndex,
     pub immediate_sign_in: ImmediateSignIn,
 }
 

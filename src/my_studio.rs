@@ -20,6 +20,7 @@ use crate::config::Config;
 ///   credentials and other settings.
 /// * `session_token` - An optional String that stores the session token after successful
 ///   authentication.
+#[derive(Debug, Clone)]
 pub struct HttpClient {
     client: Client,
     config: Rc<RefCell<Config>>,

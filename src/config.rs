@@ -21,7 +21,7 @@ use crate::xlsx::ColumnIndex;
 /// * `my_studio` - Authentication credentials and settings for the MyStudio API.
 /// * `config_path` - The path to the configuration file (not serialized to TOML).
 /// ```
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     pub theme: Theme,
     pub my_studio: MyStudio,
@@ -41,7 +41,7 @@ pub struct Config {
 /// * `System` - Uses the operating system's theme preference (default).
 /// * `Dark` - Uses a dark color scheme with light text on dark backgrounds.
 /// * `Light` - Uses a light color scheme with dark text on light backgrounds.
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum Theme {
     #[default]
     System,
@@ -58,7 +58,7 @@ pub enum Theme {
 ///
 /// * `email` - The user's email address used for authentication.
 /// * `company_id` - The identifier for the user's company within the MyStudio system.
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MyStudio {
     pub email: String,
     pub company_id: String,

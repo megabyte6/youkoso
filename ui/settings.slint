@@ -75,9 +75,9 @@ export global Settings {
     callback changed-student-data-name-column;
     callback reset-student-data-name-column;
 
-    in-out property <int> student-data-rfid-column;
-    callback changed-student-data-rfid-column;
-    callback reset-student-data-rfid-column;
+    in-out property <int> student-data-id-column;
+    callback changed-student-data-id-column;
+    callback reset-student-data-id-column;
 
     in-out property <int> student-data-immediate-sign-in-column;
     callback changed-student-data-immediate-sign-in-column;
@@ -296,23 +296,23 @@ export component SettingsPage {
 
             Row {
                 Text {
-                    text: "RFID column index";
+                    text: "ID column index";
                     font-size: 10pt;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-rfid-column();
+                        Settings.reset-student-data-id-column();
                     }
 
                     LineEdit {
-                        text: Settings.student-data-rfid-column;
+                        text: Settings.student-data-id-column;
                         input-type: number;
                         preferred-width: 300px;
 
                         edited(text) => {
-                            Settings.student-data-rfid-column = text.to-float();
-                            Settings.changed-student-data-rfid-column();
+                            Settings.student-data-id-column = text.to-float();
+                            Settings.changed-student-data-id-column();
                         }
                     }
                 }

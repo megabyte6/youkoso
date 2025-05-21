@@ -69,7 +69,7 @@ pub struct StudentData {
     pub filepath: PathBuf,
     pub sheet_name: String,
     pub name_column: ColumnIndex,
-    pub rfid_column: ColumnIndex,
+    pub id_column: ColumnIndex,
     pub immediate_sign_in: ImmediateSignIn,
 }
 

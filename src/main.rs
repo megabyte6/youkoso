@@ -228,30 +228,29 @@ fn implement_ui_callbacks(ui: &App, config: &Rc<RefCell<Config>>) {
         }
     });
 
-    ui.global::<Settings>()
-        .on_changed_student_data_rfid_column({
-            let ui = ui.as_weak();
-            let config = Rc::clone(config);
-            move || {
-                config.try_borrow_mut().unwrap().student_data.rfid_column = ui
-                    .upgrade()
-                    .unwrap()
-                    .global::<Settings>()
-                    .get_student_data_rfid_column()
-                    .try_into()
-                    .unwrap();
-            }
-        });
-    ui.global::<Settings>().on_reset_student_data_rfid_column({
+    ui.global::<Settings>().on_changed_student_data_id_column({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
-        let default_value = Config::default().student_data.rfid_column;
         move || {
-            config.try_borrow_mut().unwrap().student_data.rfid_column = default_value;
+            config.try_borrow_mut().unwrap().student_data.id_column = ui
+                .upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .get_student_data_id_column()
+                .try_into()
+                .unwrap();
+        }
+    });
+    ui.global::<Settings>().on_reset_student_data_id_column({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        let default_value = Config::default().student_data.id_column;
+        move || {
+            config.try_borrow_mut().unwrap().student_data.id_column = default_value;
             ui.upgrade()
                 .unwrap()
                 .global::<Settings>()
-                .set_student_data_rfid_column(default_value.into());
+                .set_student_data_id_column(default_value.into());
         }
     });
 
@@ -386,7 +385,7 @@ fn load_config_to_ui(ui: &App, config: &Rc<RefCell<Config>>) {
         .set_student_data_name_column(config.try_borrow().unwrap().student_data.name_column.into());
 
     ui.global::<Settings>()
-        .set_student_data_rfid_column(config.try_borrow().unwrap().student_data.rfid_column.into());
+        .set_student_data_id_column(config.try_borrow().unwrap().student_data.id_column.into());
 
     ui.global::<Settings>()
         .set_student_data_immediate_sign_in_column(

@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::xlsx::ColumnIndex;
+use crate::database::ColumnIndex;
 
 /// Configuration for the application.
 ///
@@ -64,6 +64,18 @@ pub struct MyStudio {
     pub company_id: String,
 }
 
+/// Configuration for student data management.
+///
+/// This struct contains settings related to the source and structure of student data,
+/// including file location, sheet identification, and column mappings for student information.
+///
+/// # Fields
+///
+/// * `filepath` - Path to the file containing student data.
+/// * `sheet_name` - Name of the worksheet containing student records.
+/// * `name_column` - Index of the column containing student names.
+/// * `id_column` - Index of the column containing student identifiers.
+/// * `immediate_sign_in` - Configuration for automatic sign-in functionality.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StudentData {
     pub filepath: PathBuf,
@@ -73,6 +85,16 @@ pub struct StudentData {
     pub immediate_sign_in: ImmediateSignIn,
 }
 
+/// Configuration for immediate sign-in functionality.
+///
+/// This struct defines settings that control automatic sign-in behavior,
+/// specifying which column indicates eligibility and what symbol marks a student
+/// as enabled for immediate sign-in.
+///
+/// # Fields
+///
+/// * `column` - Index of the column that indicates immediate sign-in eligibility.
+/// * `enabled_symbol` - The string value that, when present in the column, enables immediate sign-in.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImmediateSignIn {
     pub column: ColumnIndex,

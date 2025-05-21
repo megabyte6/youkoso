@@ -2,8 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod config;
+mod database;
 mod my_studio;
-mod xlsx;
 
 use config::Config;
 use my_studio::HttpClient;

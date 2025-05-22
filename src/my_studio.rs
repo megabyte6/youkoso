@@ -1,9 +1,10 @@
 mod error;
 
+use std::{cell::RefCell, rc::Rc};
+
 use error::{ApiError, Error, Result};
 use reqwest::Client;
 use serde_json::{Value, json};
-use std::{cell::RefCell, rc::Rc};
 
 use crate::config::Config;
 

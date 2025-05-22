@@ -2,18 +2,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod config;
-mod database;
 mod my_studio;
+mod spreadsheet;
 
-use config::Config;
-use my_studio::HttpClient;
-use slint::{CloseRequestResponse, ToSharedString};
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
     process::exit,
     rc::Rc,
 };
+
+use config::Config;
+use my_studio::HttpClient;
+use slint::{CloseRequestResponse, ToSharedString};
+use spreadsheet::load_student_info_from_xlsx;
 
 slint::include_modules!();
 use slint_generatedApp as ui;
@@ -26,6 +28,8 @@ async fn main() {
             exit(1);
         }),
     ));
+
+    let database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
 
     let client = HttpClient::new(Rc::clone(&config));
 

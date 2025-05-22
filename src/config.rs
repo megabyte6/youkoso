@@ -1,13 +1,14 @@
 mod error;
 
-use error::{Result, TomlError};
-use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
-use crate::database::ColumnIndex;
+use error::{Result, TomlError};
+use serde::{Deserialize, Serialize};
+
+use crate::spreadsheet::ColumnIndex;
 
 /// Configuration for the application.
 ///

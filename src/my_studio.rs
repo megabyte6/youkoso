@@ -56,11 +56,12 @@ impl HttpClient {
     ///
     /// This method sends a POST request to the MyStudio API to generate a session token
     /// for attendance purposes. It uses the client instance stored in the `HttpClient`.
+    /// Upon successful execution, the session token is stored in the `session_token` field.
     ///
     /// # Returns
     ///
-    /// Returns a `Result` containing the session token as a `String` if successful, or an `Error`
-    /// if an error occurs during the request or response handling.
+    /// Returns a `Result<()>` which is `Ok(())` if the session token was successfully acquired and stored,
+    /// or an `Error` if an error occurs during the request or response handling.
     ///
     /// # Errors
     ///
@@ -70,7 +71,7 @@ impl HttpClient {
     /// - `Error::Api` if the API response contains an error, such as:
     ///   - Missing or invalid fields in the response.
     ///   - An unrecognized value in the response.
-    pub async fn aquire_session_token(&self) -> Result<String> {
+    pub async fn aquire_session_token(&mut self) -> Result<()> {
         let request_url = "https://cn.mystudio.io/Api/v2/generateStudioAttendanceToken";
         let request_body = &json!({
             "company_id": self.config.try_borrow()?.my_studio.company_id,
@@ -98,7 +99,8 @@ impl HttpClient {
                     field: "msg".to_owned(),
                     url: request_url.to_owned(),
                 })?;
-                Ok(msg.to_string())
+                self.session_token = Some(msg.to_string());
+                Ok(())
             }
             "Failed" => {
                 let msg = response["msg"].as_str().ok_or(ApiError::MissingField {

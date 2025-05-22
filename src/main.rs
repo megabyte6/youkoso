@@ -3,11 +3,19 @@
 
 mod config;
 mod my_studio;
+mod spreadsheet;
+
+use std::{
+    cell::RefCell,
+    path::{Path, PathBuf},
+    process::exit,
+    rc::Rc,
+};
 
 use config::Config;
 use my_studio::HttpClient;
-use slint::CloseRequestResponse;
-use std::{cell::RefCell, path::Path, process::exit, rc::Rc};
+use slint::{CloseRequestResponse, ToSharedString};
+use spreadsheet::load_student_info_from_xlsx;
 
 slint::include_modules!();
 use slint_generatedApp as ui;
@@ -21,16 +29,32 @@ async fn main() {
         }),
     ));
 
+    let database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
+
     let client = HttpClient::new(Rc::clone(&config));
 
-    let ui = init(&config);
+    let ui = init_ui(&config);
     ui.run().unwrap();
 }
 
-fn init(config: &Rc<RefCell<Config>>) -> App {
+fn init_ui(config: &Rc<RefCell<Config>>) -> App {
     let ui = App::new().unwrap();
     slint::set_xdg_app_id("youkoso").unwrap();
+    implement_ui_callbacks(&ui, config);
+    load_config_to_ui(&ui, config);
 
+    ui.window().on_close_requested({
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow().unwrap().save().unwrap();
+            CloseRequestResponse::HideWindow
+        }
+    });
+
+    ui
+}
+
+fn implement_ui_callbacks(ui: &App, config: &Rc<RefCell<Config>>) {
     ui.global::<Settings>().on_reset_all({
         let ui = ui.as_weak();
         move || {
@@ -48,6 +72,7 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
                 .invoke_reset_my_studio_company_id();
         }
     });
+
     ui.global::<Settings>().on_changed_theme({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
@@ -64,18 +89,21 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     ui.global::<Settings>().on_reset_theme({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
+        let default_value = Config::default().theme;
         move || {
-            config.try_borrow_mut().unwrap().theme = Config::default().theme;
-            ui.upgrade().unwrap().global::<Settings>().set_theme(
-                match config.try_borrow().unwrap().theme {
+            config.try_borrow_mut().unwrap().theme = default_value.clone();
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .set_theme(match default_value {
                     config::Theme::System => ui::Theme::System,
                     config::Theme::Dark => ui::Theme::Dark,
                     config::Theme::Light => ui::Theme::Light,
-                },
-            );
+                });
             ui.upgrade().unwrap().invoke_reload_theme();
         }
     });
+
     ui.global::<Settings>().on_changed_my_studio_email({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
@@ -91,14 +119,16 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     ui.global::<Settings>().on_reset_my_studio_email({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
+        let default_value = Config::default().my_studio.email;
         move || {
-            config.try_borrow_mut().unwrap().my_studio.email = Config::default().my_studio.email;
+            config.try_borrow_mut().unwrap().my_studio.email = default_value.clone();
             ui.upgrade()
                 .unwrap()
                 .global::<Settings>()
-                .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
+                .set_my_studio_email(default_value.to_shared_string());
         }
     });
+
     ui.global::<Settings>().on_changed_my_studio_company_id({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
@@ -114,24 +144,202 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
     ui.global::<Settings>().on_reset_my_studio_company_id({
         let ui = ui.as_weak();
         let config = Rc::clone(config);
+        let default_value = Config::default().my_studio.company_id;
         move || {
-            config.try_borrow_mut().unwrap().my_studio.company_id =
-                Config::default().my_studio.company_id;
+            config.try_borrow_mut().unwrap().my_studio.company_id = default_value.clone();
             ui.upgrade()
                 .unwrap()
                 .global::<Settings>()
-                .set_my_studio_company_id(
-                    config
-                        .try_borrow()
-                        .unwrap()
-                        .my_studio
-                        .company_id
-                        .clone()
-                        .into(),
-                );
+                .set_my_studio_company_id(default_value.to_shared_string());
         }
     });
 
+    ui.global::<Settings>().on_changed_student_data_filepath({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().student_data.filepath = PathBuf::from(
+                ui.upgrade()
+                    .unwrap()
+                    .global::<Settings>()
+                    .get_student_data_filepath()
+                    .to_string(),
+            );
+        }
+    });
+    ui.global::<Settings>().on_reset_student_data_filepath({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        let default_value = Config::default().student_data.filepath;
+        move || {
+            config.try_borrow_mut().unwrap().student_data.filepath = default_value.clone();
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .set_student_data_filepath(default_value.display().to_shared_string());
+        }
+    });
+
+    ui.global::<Settings>().on_changed_student_data_sheet_name({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().student_data.sheet_name = ui
+                .upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .get_student_data_sheet_name()
+                .into();
+        }
+    });
+    ui.global::<Settings>().on_reset_student_data_sheet_name({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        let default_value = Config::default().student_data.sheet_name;
+        move || {
+            config.try_borrow_mut().unwrap().student_data.sheet_name = default_value.clone();
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .set_student_data_sheet_name(default_value.to_shared_string());
+        }
+    });
+
+    ui.global::<Settings>()
+        .on_changed_student_data_name_column({
+            let ui = ui.as_weak();
+            let config = Rc::clone(config);
+            move || {
+                config.try_borrow_mut().unwrap().student_data.name_column = ui
+                    .upgrade()
+                    .unwrap()
+                    .global::<Settings>()
+                    .get_student_data_name_column()
+                    .try_into()
+                    .unwrap();
+            }
+        });
+    ui.global::<Settings>().on_reset_student_data_name_column({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        let default_value = Config::default().student_data.name_column;
+        move || {
+            config.try_borrow_mut().unwrap().student_data.name_column = default_value;
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .set_student_data_name_column(default_value.into());
+        }
+    });
+
+    ui.global::<Settings>().on_changed_student_data_id_column({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        move || {
+            config.try_borrow_mut().unwrap().student_data.id_column = ui
+                .upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .get_student_data_id_column()
+                .try_into()
+                .unwrap();
+        }
+    });
+    ui.global::<Settings>().on_reset_student_data_id_column({
+        let ui = ui.as_weak();
+        let config = Rc::clone(config);
+        let default_value = Config::default().student_data.id_column;
+        move || {
+            config.try_borrow_mut().unwrap().student_data.id_column = default_value;
+            ui.upgrade()
+                .unwrap()
+                .global::<Settings>()
+                .set_student_data_id_column(default_value.into());
+        }
+    });
+
+    ui.global::<Settings>()
+        .on_changed_student_data_immediate_sign_in_column({
+            let ui = ui.as_weak();
+            let config = Rc::clone(config);
+            move || {
+                config
+                    .try_borrow_mut()
+                    .unwrap()
+                    .student_data
+                    .immediate_sign_in
+                    .column = ui
+                    .upgrade()
+                    .unwrap()
+                    .global::<Settings>()
+                    .get_student_data_immediate_sign_in_column()
+                    .try_into()
+                    .unwrap();
+            }
+        });
+    ui.global::<Settings>()
+        .on_reset_student_data_immediate_sign_in_column({
+            let ui = ui.as_weak();
+            let config = Rc::clone(config);
+            let default_value = Config::default().student_data.immediate_sign_in.column;
+            move || {
+                config
+                    .try_borrow_mut()
+                    .unwrap()
+                    .student_data
+                    .immediate_sign_in
+                    .column = default_value;
+                ui.upgrade()
+                    .unwrap()
+                    .global::<Settings>()
+                    .set_student_data_immediate_sign_in_column(default_value.into());
+            }
+        });
+
+    ui.global::<Settings>()
+        .on_changed_student_data_immediate_sign_in_enabled_symbol({
+            let ui = ui.as_weak();
+            let config = Rc::clone(config);
+            move || {
+                config
+                    .try_borrow_mut()
+                    .unwrap()
+                    .student_data
+                    .immediate_sign_in
+                    .enabled_symbol = ui
+                    .upgrade()
+                    .unwrap()
+                    .global::<Settings>()
+                    .get_student_data_immediate_sign_in_enabled_symbol()
+                    .into();
+            }
+        });
+    ui.global::<Settings>()
+        .on_reset_student_data_immediate_sign_in_enabled_symbol({
+            let ui = ui.as_weak();
+            let config = Rc::clone(config);
+            let default_value = Config::default()
+                .student_data
+                .immediate_sign_in
+                .enabled_symbol;
+            move || {
+                config
+                    .try_borrow_mut()
+                    .unwrap()
+                    .student_data
+                    .immediate_sign_in
+                    .enabled_symbol = default_value.clone();
+                ui.upgrade()
+                    .unwrap()
+                    .global::<Settings>()
+                    .set_student_data_immediate_sign_in_enabled_symbol(
+                        default_value.to_shared_string(),
+                    );
+            }
+        });
+}
+
+fn load_config_to_ui(ui: &App, config: &Rc<RefCell<Config>>) {
     ui.global::<Settings>()
         .set_theme(match config.try_borrow().unwrap().theme {
             config::Theme::System => ui::Theme::System,
@@ -139,25 +347,69 @@ fn init(config: &Rc<RefCell<Config>>) -> App {
             config::Theme::Light => ui::Theme::Light,
         });
     ui.invoke_reload_theme();
-    ui.global::<Settings>()
-        .set_my_studio_email(config.try_borrow().unwrap().my_studio.email.clone().into());
+
+    ui.global::<Settings>().set_my_studio_email(
+        config
+            .try_borrow()
+            .unwrap()
+            .my_studio
+            .email
+            .to_shared_string(),
+    );
+
     ui.global::<Settings>().set_my_studio_company_id(
         config
             .try_borrow()
             .unwrap()
             .my_studio
             .company_id
-            .clone()
-            .into(),
+            .to_shared_string(),
     );
 
-    ui.window().on_close_requested({
-        let config = Rc::clone(config);
-        move || {
-            config.try_borrow().unwrap().save().unwrap();
-            CloseRequestResponse::HideWindow
-        }
-    });
+    ui.global::<Settings>().set_student_data_filepath(
+        config
+            .try_borrow()
+            .unwrap()
+            .student_data
+            .filepath
+            .display()
+            .to_shared_string(),
+    );
 
-    ui
+    ui.global::<Settings>().set_student_data_sheet_name(
+        config
+            .try_borrow()
+            .unwrap()
+            .student_data
+            .sheet_name
+            .to_shared_string(),
+    );
+
+    ui.global::<Settings>()
+        .set_student_data_name_column(config.try_borrow().unwrap().student_data.name_column.into());
+
+    ui.global::<Settings>()
+        .set_student_data_id_column(config.try_borrow().unwrap().student_data.id_column.into());
+
+    ui.global::<Settings>()
+        .set_student_data_immediate_sign_in_column(
+            config
+                .try_borrow()
+                .unwrap()
+                .student_data
+                .immediate_sign_in
+                .column
+                .into(),
+        );
+
+    ui.global::<Settings>()
+        .set_student_data_immediate_sign_in_enabled_symbol(
+            config
+                .try_borrow()
+                .unwrap()
+                .student_data
+                .immediate_sign_in
+                .enabled_symbol
+                .to_shared_string(),
+        );
 }

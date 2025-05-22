@@ -1,11 +1,14 @@
 mod error;
 
-use error::{Result, TomlError};
-use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::{Path, PathBuf},
 };
+
+use error::{Result, TomlError};
+use serde::{Deserialize, Serialize};
+
+use crate::spreadsheet::ColumnIndex;
 
 /// Configuration for the application.
 ///
@@ -23,6 +26,7 @@ use std::{
 pub struct Config {
     pub theme: Theme,
     pub my_studio: MyStudio,
+    pub student_data: StudentData,
 
     #[serde(skip)]
     config_path: PathBuf,
@@ -59,6 +63,52 @@ pub enum Theme {
 pub struct MyStudio {
     pub email: String,
     pub company_id: String,
+}
+
+/// Configuration for student data management.
+///
+/// This struct contains settings related to the source and structure of student data,
+/// including file location, sheet identification, and column mappings for student information.
+///
+/// # Fields
+///
+/// * `filepath` - Path to the file containing student data.
+/// * `sheet_name` - Name of the worksheet containing student records.
+/// * `name_column` - Index of the column containing student names.
+/// * `id_column` - Index of the column containing student identifiers.
+/// * `immediate_sign_in` - Configuration for automatic sign-in functionality.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct StudentData {
+    pub filepath: PathBuf,
+    pub sheet_name: String,
+    pub name_column: ColumnIndex,
+    pub id_column: ColumnIndex,
+    pub immediate_sign_in: ImmediateSignIn,
+}
+
+/// Configuration for immediate sign-in functionality.
+///
+/// This struct defines settings that control automatic sign-in behavior,
+/// specifying which column indicates eligibility and what symbol marks a student
+/// as enabled for immediate sign-in.
+///
+/// # Fields
+///
+/// * `column` - Index of the column that indicates immediate sign-in eligibility.
+/// * `enabled_symbol` - The string value that, when present in the column, enables immediate sign-in.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImmediateSignIn {
+    pub column: ColumnIndex,
+    pub enabled_symbol: String,
+}
+
+impl Default for ImmediateSignIn {
+    fn default() -> Self {
+        Self {
+            column: Default::default(),
+            enabled_symbol: "TRUE".to_owned(),
+        }
+    }
 }
 
 impl Config {

@@ -21,7 +21,6 @@ use crate::spreadsheet::ColumnIndex;
 /// * `theme` - The theme setting for the application's user interface.
 /// * `my_studio` - Authentication credentials and settings for the MyStudio API.
 /// * `config_path` - The path to the configuration file (not serialized to TOML).
-/// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     pub theme: Theme,

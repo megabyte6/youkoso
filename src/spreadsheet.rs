@@ -20,23 +20,21 @@ pub fn load_student_info_from_xlsx(config: &Config) -> Result<HashMap<Id, Studen
     let mut workbook: Xlsx<_> = open_workbook(&config.student_data.filepath)?;
     let worksheet = workbook.worksheet_range(&config.student_data.sheet_name)?;
 
-    let name_column: usize = config.student_data.name_column.into();
-    let id_column: usize = config.student_data.id_column.into();
-    let immediate_sign_in_column: usize = config.student_data.immediate_sign_in.column.into();
-
     Ok(worksheet
         .rows()
-        .filter(|row| row.get(id_column).is_some())
+        .filter(|row| row.get(config.student_data.id_column as usize).is_some())
         .map(|row| {
             (
-                row.get(id_column).unwrap().to_string(),
+                row.get(config.student_data.id_column as usize)
+                    .unwrap()
+                    .to_string(),
                 Student {
                     name: row
-                        .get(name_column)
+                        .get(config.student_data.name_column as usize)
                         .unwrap_or(&calamine::Data::String("".to_owned()))
                         .to_string(),
                     immediate_sign_in: row
-                        .get(immediate_sign_in_column)
+                        .get(config.student_data.immediate_sign_in.column as usize)
                         .unwrap_or(&calamine::Data::Bool(false))
                         .get_bool()
                         .unwrap_or(false),

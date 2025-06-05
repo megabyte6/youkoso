@@ -15,10 +15,10 @@ use std::{
 use config::Config;
 use my_studio::HttpClient;
 use slint::{CloseRequestResponse, ToSharedString};
+use slint_generatedApp as ui;
 use spreadsheet::load_student_info_from_xlsx;
 
 slint::include_modules!();
-use slint_generatedApp as ui;
 
 #[tokio::main]
 async fn main() {

@@ -3,6 +3,7 @@
 
 mod config;
 mod my_studio;
+mod scheduler;
 mod spreadsheet;
 
 use std::{
@@ -10,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
     rc::Rc,
+    time::Duration,
 };
 
 use config::Config;
@@ -17,11 +19,16 @@ use my_studio::HttpClient;
 use slint::{CloseRequestResponse, ToSharedString};
 use slint_generatedApp as ui;
 use spreadsheet::load_student_info_from_xlsx;
+use tokio::runtime::Runtime;
+
+use crate::scheduler::TaskScheduler;
 
 slint::include_modules!();
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    let _runtime = Runtime::new().unwrap();
+    let mut _scheduler = TaskScheduler::new(Duration::from_secs(1));
+
     let config = Rc::new(RefCell::new(
         config::load(Path::new("config.toml")).unwrap_or_else(|e| {
             eprintln!("Error when loading config from 'config.toml': {e}");
@@ -29,9 +36,9 @@ async fn main() {
         }),
     ));
 
-    let database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
+    let _database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
 
-    let client = HttpClient::new(Rc::clone(&config));
+    let _client = HttpClient::new(Rc::clone(&config));
 
     let ui = init_ui(&config);
     ui.run().unwrap();

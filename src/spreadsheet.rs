@@ -10,7 +10,7 @@ use crate::config::Config;
 pub type ColumnIndex = u8;
 pub type Id = String;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Student {
     pub name: String,
     pub immediate_sign_in: bool,

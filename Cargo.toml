@@ -14,7 +14,6 @@ thiserror = "2.0"
 time = { version = "0.3", features = ["local-offset"] }
 tokio = { version = "1.45", features = ["full"] }
 toml = "0.8"
-uuid = { version = "1.17", features = ["v4"] }
 
 [build-dependencies]
 slint-build = "1.12"

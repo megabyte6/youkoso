@@ -12,10 +12,8 @@ use tokio::{
     task::{self, JoinHandle},
     time::sleep,
 };
-use uuid::Uuid;
 
 struct Task {
-    pub id: Uuid,
     pub execution_time: OffsetDateTime,
     pub callback: Box<dyn FnOnce() + Send>,
 }
@@ -23,7 +21,6 @@ struct Task {
 impl fmt::Debug for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Task")
-            .field("id", &self.id)
             .field("execution_time", &self.execution_time)
             .finish()
     }
@@ -31,7 +28,7 @@ impl fmt::Debug for Task {
 
 impl PartialEq for Task {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.execution_time == other.execution_time
+        self.execution_time == other.execution_time
     }
 }
 
@@ -65,16 +62,13 @@ impl TaskScheduler {
         }
     }
 
-    pub fn schedule_at<F>(&mut self, time: OffsetDateTime, callback: F) -> Uuid
+    pub fn schedule_at<F>(&mut self, time: OffsetDateTime, callback: F)
     where
         F: FnOnce() + Send + 'static,
     {
-        let uuid = Uuid::new_v4();
-
         let should_spawn_processor = {
             let mut tasks = self.tasks.lock().unwrap_or_else(|err| err.into_inner());
             tasks.push(Reverse(Task {
-                id: uuid,
                 execution_time: time,
                 callback: Box::new(callback),
             }));
@@ -86,8 +80,6 @@ impl TaskScheduler {
         if should_spawn_processor {
             self.launch_task_runner();
         }
-
-        uuid
     }
 
     fn launch_task_runner(&mut self) {

@@ -21,13 +21,16 @@ use slint_generatedApp as ui;
 use spreadsheet::load_student_info_from_xlsx;
 use tokio::runtime::Runtime;
 
-use crate::scheduler::TaskScheduler;
+use crate::scheduler::{Config as SchedulerConfig, Scheduler};
 
 slint::include_modules!();
 
 fn main() {
     let _runtime = Runtime::new().unwrap();
-    let mut _scheduler = TaskScheduler::new(Duration::from_secs(1));
+    let mut _scheduler = Scheduler::new(SchedulerConfig {
+        max_poll: Duration::from_secs(1),
+        ..Default::default()
+    });
 
     let config = Rc::new(RefCell::new(
         config::load(Path::new("config.toml")).unwrap_or_else(|e| {
@@ -36,9 +39,9 @@ fn main() {
         }),
     ));
 
-    let _database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
+    // let _database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
 
-    let _client = HttpClient::new(Rc::clone(&config));
+    // let _client = HttpClient::new(Rc::clone(&config));
 
     let ui = init_ui(&config);
     ui.run().unwrap();

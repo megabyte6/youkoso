@@ -1,34 +1,32 @@
 use std::{
-    cmp::{Ordering, Reverse},
+    cmp::Ordering,
     collections::BinaryHeap,
     fmt::{self, Formatter},
-    sync::{Arc, Mutex},
+    pin::Pin,
     time::Duration,
 };
 
 use time::OffsetDateTime;
 use tokio::{
-    spawn,
-    task::{self, JoinHandle},
+    select, spawn,
+    sync::mpsc::{UnboundedSender, unbounded_channel},
     time::sleep,
 };
 
 struct Task {
-    pub execution_time: OffsetDateTime,
-    pub callback: Box<dyn FnOnce() + Send>,
+    pub at: OffsetDateTime,
+    pub future: Option<Pin<Box<dyn Future<Output = ()> + Send>>>,
 }
 
 impl fmt::Debug for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Task")
-            .field("execution_time", &self.execution_time)
-            .finish()
+        f.debug_struct("Task").field("at", &self.at).finish()
     }
 }
 
 impl PartialEq for Task {
     fn eq(&self, other: &Self) -> bool {
-        self.execution_time == other.execution_time
+        self.at == other.at
     }
 }
 
@@ -42,84 +40,146 @@ impl PartialOrd for Task {
 
 impl Ord for Task {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.execution_time.cmp(&other.execution_time)
+        self.at.cmp(&other.at)
+    }
+}
+
+enum Request {
+    Add(Task),
+    Stop,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Config {
+    /// Upper bound on how long the loop will sleep; bounds worst-case delay after resume.
+    pub max_poll: Duration,
+    /// If Some(d), skip (do not run) tasks that are more than d late.
+    pub catch_up_limit: Option<Duration>,
+    /// If true, tasks scheduled in the past run immediately instead of waiting up to max_poll.
+    pub run_past_due_immediately: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            max_poll: Duration::from_secs(60),
+            catch_up_limit: None,
+            run_past_due_immediately: true,
+        }
     }
 }
 
 #[derive(Debug)]
-pub struct TaskScheduler {
-    tasks: Arc<Mutex<BinaryHeap<Reverse<Task>>>>,
-    max_poll_delay: Duration,
-    task_runner_handle: Option<JoinHandle<()>>,
+pub struct Scheduler {
+    config: Config,
+
+    tx: UnboundedSender<Request>,
 }
 
-impl TaskScheduler {
-    pub fn new(max_poll_delay: Duration) -> Self {
-        Self {
-            tasks: Arc::new(Mutex::new(BinaryHeap::new())),
-            max_poll_delay,
-            task_runner_handle: None,
-        }
-    }
+impl Scheduler {
+    /// Creates a new Scheduler and starts it
+    pub fn new(config: Config) -> Self {
+        let (tx, mut rx) = unbounded_channel::<Request>();
 
-    pub fn schedule_at<F>(&mut self, time: OffsetDateTime, callback: F)
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        let should_spawn_processor = {
-            let mut tasks = self.tasks.lock().unwrap_or_else(|err| err.into_inner());
-            tasks.push(Reverse(Task {
-                execution_time: time,
-                callback: Box::new(callback),
-            }));
+        spawn(async move {
+            let mut heap: BinaryHeap<Task> = BinaryHeap::new();
 
-            self.task_runner_handle
-                .as_ref()
-                .is_none_or(|handle| handle.is_finished())
-        };
-        if should_spawn_processor {
-            self.launch_task_runner();
-        }
-    }
-
-    fn launch_task_runner(&mut self) {
-        let tasks = Arc::clone(&self.tasks);
-        let max_poll_delay = self.max_poll_delay.as_secs_f64();
-
-        self.task_runner_handle = Some(task::spawn(async move {
             loop {
-                let now = OffsetDateTime::now_utc();
-
-                let next_task_time = tasks
-                    .lock()
-                    .unwrap_or_else(|err| err.into_inner())
-                    .peek()
-                    .map(|task| task.0.execution_time);
-                match next_task_time {
-                    Some(task_time) if task_time <= now => {
-                        if let Some(Reverse(task)) =
-                            tasks.lock().unwrap_or_else(|err| err.into_inner()).pop()
-                        {
-                            spawn(async move { (task.callback)() });
-                        }
+                let now = now_local_or_utc();
+                while let Some(mut task) = heap.pop_if(|task| task.at <= now) {
+                    let time_since_task = now - task.at;
+                    // Should never fail since the while loop only runs if the task is in the past.
+                    // If it is negative (indicating that the task is in the future), we can skip the task.
+                    let late_by = time_since_task.try_into().unwrap_or(Duration::MAX);
+                    // Don't run tasks that are too old
+                    if let Some(limit) = config.catch_up_limit
+                        && late_by > limit
+                    {
+                        eprintln!(
+                            "Skipping stale task scheduled at {} (late by {}s)",
+                            task.at,
+                            late_by.as_secs()
+                        );
+                        continue;
                     }
-                    Some(task_time) => {
-                        let sleep_duration = (task_time - now).as_seconds_f64().max(max_poll_delay);
-                        sleep(Duration::from_secs_f64(sleep_duration)).await;
-                    }
-                    None => {
-                        break;
+                    if let Some(future) = task.future.take() {
+                        spawn(async move {
+                            future.await;
+                        });
                     }
                 }
+
+                // Determine sleep duration
+                let sleep_time = heap
+                    .peek()
+                    .map(|next| {
+                        let time_until_next = next.at - now_local_or_utc();
+                        // Cap the lower bound to zero in case the task is scheduled for the past
+                        time_until_next.try_into().unwrap_or(Duration::ZERO)
+                    })
+                    .unwrap_or(config.max_poll);
+
+                select! {
+                    cmd = rx.recv() => {
+                        match cmd {
+                            Some(Request::Add(task)) => {
+                                heap.push(task);
+                            }
+                            Some(Request::Stop) | None => {
+                                break;
+                            }
+                        }
+                    }
+                    _ = sleep(sleep_time) => {}
+                }
             }
-        }));
+        });
+
+        Scheduler { config, tx }
+    }
+
+    pub fn schedule<F>(&mut self, at: OffsetDateTime, future: F)
+    where
+        F: Future<Output = ()> + Send + 'static,
+    {
+        let now = now_local_or_utc();
+        if self.config.run_past_due_immediately && at <= now {
+            spawn(future);
+            return;
+        }
+        let task = Task {
+            at,
+            future: Some(Box::pin(future)),
+        };
+        let _ = self.tx.send(Request::Add(task));
+    }
+
+    pub fn stop(&self) {
+        let _ = self.tx.send(Request::Stop);
     }
 }
 
-impl Drop for TaskScheduler {
+impl Drop for Scheduler {
     fn drop(&mut self) {
-        if let Some(handle) = &self.task_runner_handle {
-            handle.abort();
+        self.stop();
+    }
+}
+
+fn now_local_or_utc() -> OffsetDateTime {
+    OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc())
+}
+
+trait BinaryHeapPopIf<T: std::cmp::Ord> {
+    fn pop_if(&mut self, predicate: impl FnOnce(&T) -> bool) -> Option<T>;
+}
+
+impl<T: std::cmp::Ord> BinaryHeapPopIf<T> for BinaryHeap<T> {
+    fn pop_if(&mut self, predicate: impl FnOnce(&T) -> bool) -> Option<T> {
+        let greatest = self.peek()?;
+        if predicate(greatest) {
+            self.pop()
+        } else {
+            None
         }
     }
 }

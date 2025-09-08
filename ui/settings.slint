@@ -368,11 +368,10 @@ export component SettingsPage {
     }
 
     Rectangle {
-        x: root.width - self.width - self.padding;
-        y: self.padding;
+        x: root.width - self.width - StyleMetrics.layout-padding;
+        y: StyleMetrics.layout-padding;
         width: 40px;
         height: 40px;
-        padding: StyleMetrics.layout-padding;
         border-width: 2px;
         border-color: Palette.border;
 
@@ -392,9 +391,8 @@ export component SettingsPage {
 
     Button {
         text: "Reset All";
-        x: root.width - self.width - self.padding;
-        y: root.height - self.height - self.padding;
-        padding: StyleMetrics.layout-padding;
+        x: root.width - self.width - StyleMetrics.layout-padding;
+        y: root.height - self.height - StyleMetrics.layout-padding;
 
         clicked => {
             reset-all-popup.show();

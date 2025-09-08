@@ -17,11 +17,10 @@ component HomePage {
     Image {
         source: @image-url("icons/settings-symbolic.svg");
         colorize: Palette.control-foreground;
-        x: root.width - self.width - self.padding;
-        y: self.padding;
+        x: root.width - self.width - StyleMetrics.layout-padding;
+        y: StyleMetrics.layout-padding;
         width: 40px;
         height: 40px;
-        padding: StyleMetrics.layout-padding;
 
         TouchArea {
             clicked => {

@@ -39,9 +39,9 @@ fn main() {
         }),
     ));
 
-    // let _database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
+    let _database = load_student_info_from_xlsx(&config.try_borrow().unwrap()).unwrap();
 
-    // let _client = HttpClient::new(Rc::clone(&config));
+    let _client = HttpClient::new(Rc::clone(&config));
 
     let ui = init_ui(&config);
     ui.run().unwrap();

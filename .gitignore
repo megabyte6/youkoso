@@ -3,3 +3,7 @@
 # Runtime
 
 config.toml
+
+# Nix
+.direnv/
+.envrc

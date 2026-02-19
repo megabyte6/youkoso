@@ -26,11 +26,14 @@ use crate::scheduler::{Config as SchedulerConfig, Scheduler};
 slint::include_modules!();
 
 fn main() {
-    let _runtime = Runtime::new().unwrap();
-    let mut _scheduler = Scheduler::new(SchedulerConfig {
-        max_poll: Duration::from_secs(1),
-        ..Default::default()
-    });
+    let runtime = Runtime::new().unwrap();
+    let mut _scheduler = Scheduler::new(
+        runtime,
+        SchedulerConfig {
+            max_poll_interval: Duration::from_secs(1),
+            ..Default::default()
+        },
+    );
 
     let config = Rc::new(RefCell::new(
         config::load(Path::new("config.toml")).unwrap_or_else(|e| {

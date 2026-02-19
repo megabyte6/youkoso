@@ -1,3 +1,5 @@
+mod error;
+
 use std::{
     cmp::Ordering,
     collections::BinaryHeap,
@@ -6,8 +8,10 @@ use std::{
     time::Duration,
 };
 
+pub use error::ScheduleError;
 use time::OffsetDateTime;
 use tokio::{
+    runtime::Runtime,
     select, spawn,
     sync::mpsc::{UnboundedSender, unbounded_channel},
     time::sleep,
@@ -15,7 +19,7 @@ use tokio::{
 
 struct Task {
     pub at: OffsetDateTime,
-    pub future: Option<Pin<Box<dyn Future<Output = ()> + Send>>>,
+    pub future: Pin<Box<dyn Future<Output = ()> + Send>>,
 }
 
 impl fmt::Debug for Task {
@@ -52,19 +56,20 @@ enum Request {
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
     /// Upper bound on how long the loop will sleep; bounds worst-case delay after resume.
-    pub max_poll: Duration,
-    /// If Some(d), skip (do not run) tasks that are more than d late.
+    pub max_poll_interval: Duration,
+    /// If `Some(d)`, skip (do not run) tasks that are more than `d` late.
+    /// If `None`, always run missed tasks.
     pub catch_up_limit: Option<Duration>,
     /// If true, tasks scheduled in the past run immediately instead of waiting up to max_poll.
-    pub run_past_due_immediately: bool,
+    pub prioritize_overdue: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            max_poll: Duration::from_secs(60),
+            max_poll_interval: Duration::from_secs(60),
             catch_up_limit: None,
-            run_past_due_immediately: true,
+            prioritize_overdue: true,
         }
     }
 }
@@ -72,52 +77,82 @@ impl Default for Config {
 #[derive(Debug)]
 pub struct Scheduler {
     config: Config,
+    runtime: Runtime,
 
-    tx: UnboundedSender<Request>,
+    tx: Option<UnboundedSender<Request>>,
 }
 
 impl Scheduler {
-    /// Creates a new Scheduler and starts it
-    pub fn new(config: Config) -> Self {
-        let (tx, mut rx) = unbounded_channel::<Request>();
+    /// Creates a new Scheduler
+    pub fn new(runtime: Runtime, config: Config) -> Self {
+        Self {
+            config,
+            runtime,
+            tx: None,
+        }
+    }
 
-        spawn(async move {
+    pub fn schedule<F>(&mut self, at: OffsetDateTime, future: F) -> Result<(), ScheduleError>
+    where
+        F: Future<Output = ()> + Send + 'static,
+    {
+        if self.config.prioritize_overdue && at <= now_local_or_utc() {
+            self.runtime.spawn(future);
+            return Ok(());
+        }
+
+        if self.tx.is_none() {
+            self.launch_task_thread();
+        }
+        if let Some(tx) = &self.tx {
+            let task = Task {
+                at,
+                future: Box::pin(future),
+            };
+            let _ = tx.send(Request::Add(task));
+            Ok(())
+        } else {
+            Err(ScheduleError::TaskRunnerFailedToStart)
+        }
+    }
+
+    fn launch_task_thread(&mut self) {
+        let (tx, mut rx) = unbounded_channel::<Request>();
+        self.tx = Some(tx);
+
+        let config = self.config;
+        self.runtime.spawn(async move {
             let mut heap: BinaryHeap<Task> = BinaryHeap::new();
 
             loop {
                 let now = now_local_or_utc();
-                while let Some(mut task) = heap.pop_if(|task| task.at <= now) {
-                    let time_since_task = now - task.at;
-                    // Should never fail since the while loop only runs if the task is in the past.
-                    // If it is negative (indicating that the task is in the future), we can skip the task.
-                    let late_by = time_since_task.try_into().unwrap_or(Duration::MAX);
-                    // Don't run tasks that are too old
+                while let Some(task) = heap.pop_if(|task| task.at <= now) {
+                    // Should never fail since the loop only runs if the task is in the past.
+                    // If it is negative, indicating that the task is in the future, we can skip the task.
+                    let late_by = (now - task.at).try_into().unwrap_or(Duration::MAX);
                     if let Some(limit) = config.catch_up_limit
                         && late_by > limit
                     {
                         eprintln!(
-                            "Skipping stale task scheduled at {} (late by {}s)",
+                            "skipping stale task scheduled for {} (late by {}s)",
                             task.at,
                             late_by.as_secs()
                         );
                         continue;
                     }
-                    if let Some(future) = task.future.take() {
-                        spawn(async move {
-                            future.await;
-                        });
-                    }
+                    spawn(async move {
+                        task.future.await;
+                    });
                 }
 
-                // Determine sleep duration
                 let sleep_time = heap
                     .peek()
                     .map(|next| {
                         let time_until_next = next.at - now_local_or_utc();
-                        // Cap the lower bound to zero in case the task is scheduled for the past
+                        // cap the lower bound to zero in case the task is scheduled for the past
                         time_until_next.try_into().unwrap_or(Duration::ZERO)
                     })
-                    .unwrap_or(config.max_poll);
+                    .unwrap_or(config.max_poll_interval);
 
                 select! {
                     cmd = rx.recv() => {
@@ -134,28 +169,14 @@ impl Scheduler {
                 }
             }
         });
-
-        Scheduler { config, tx }
     }
 
-    pub fn schedule<F>(&mut self, at: OffsetDateTime, future: F)
-    where
-        F: Future<Output = ()> + Send + 'static,
-    {
-        let now = now_local_or_utc();
-        if self.config.run_past_due_immediately && at <= now {
-            spawn(future);
-            return;
+    pub fn stop(&mut self) {
+        if let Some(tx) = &self.tx {
+            // safe to ignore the return type since if `send()` fails, the worker thread is likely dead
+            let _ = tx.send(Request::Stop);
+            self.tx = None;
         }
-        let task = Task {
-            at,
-            future: Some(Box::pin(future)),
-        };
-        let _ = self.tx.send(Request::Add(task));
-    }
-
-    pub fn stop(&self) {
-        let _ = self.tx.send(Request::Stop);
     }
 }
 
@@ -169,11 +190,11 @@ fn now_local_or_utc() -> OffsetDateTime {
     OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc())
 }
 
-trait BinaryHeapPopIf<T: std::cmp::Ord> {
+trait PopIf<T: Ord> {
     fn pop_if(&mut self, predicate: impl FnOnce(&T) -> bool) -> Option<T>;
 }
 
-impl<T: std::cmp::Ord> BinaryHeapPopIf<T> for BinaryHeap<T> {
+impl<T: Ord> PopIf<T> for BinaryHeap<T> {
     fn pop_if(&mut self, predicate: impl FnOnce(&T) -> bool) -> Option<T> {
         let greatest = self.peek()?;
         if predicate(greatest) {

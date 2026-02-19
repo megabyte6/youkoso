@@ -67,7 +67,7 @@ Slint supports multiple rendering styles, such as `fluent` and `material`. Slint
 - `cosmic`
 - `qt` (requires Qt to be installed on your system)
 
-**Example** (for Linux and MacOS):
+**Example** (for Linux and macOS):
 
 To build the application with the `material` style:
 ```bash
@@ -114,7 +114,7 @@ Contributions are welcome! If you'd like to contribute, please follow these step
    ```
 1. Make your changes and commit them:
    ```bash
-   git commit -m "Add feature-name"
+   git commit -am "Add feature-name"
    ```
 1. Push to your branch:
    ```bash

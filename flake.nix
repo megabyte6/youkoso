@@ -54,6 +54,7 @@
             cargo-watch
             rust-analyzer
 
+            fontconfig
             slint-lsp
           ];
 
@@ -62,8 +63,6 @@
             RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
             LD_LIBRARY_PATH = with pkgs;
               lib.makeLibraryPath [
-                openssl
-
                 fontconfig
                 wayland
                 libxkbcommon

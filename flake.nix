@@ -53,6 +53,8 @@
             cargo-edit
             cargo-watch
             rust-analyzer
+
+            slint-lsp
           ];
 
           env = {

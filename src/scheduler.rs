@@ -150,7 +150,8 @@ impl Scheduler {
                     .map(|next| {
                         let time_until_next = next.at - now_local_or_utc();
                         // cap the lower bound to zero in case the task is scheduled for the past
-                        time_until_next.try_into().unwrap_or(Duration::ZERO)
+                        let duration = time_until_next.try_into().unwrap_or(Duration::ZERO)
+                        duration.min(config.max_poll_interval)
                     })
                     .unwrap_or(config.max_poll_interval);
 

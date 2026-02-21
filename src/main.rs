@@ -11,7 +11,7 @@ use std::{cell::RefCell, path::Path, process::exit, rc::Rc, time::Duration};
 use config::Config;
 use my_studio::HttpClient;
 use slint::{CloseRequestResponse, SharedString, ToSharedString};
-use slint_generatedApp as ui;
+use slint_generatedApp as GeneratedUI;
 use spreadsheet::load_student_info_from_xlsx;
 use tokio::runtime::Runtime;
 
@@ -128,9 +128,9 @@ fn implement_ui_callbacks(ui: &App, config: &Rc<RefCell<Config>>) {
                 "theme" => {
                     config.theme = Config::default().theme.clone();
                     settings.set_theme(match config.theme {
-                        config::Theme::System => ui::Theme::System,
-                        config::Theme::Dark => ui::Theme::Dark,
-                        config::Theme::Light => ui::Theme::Light,
+                        config::Theme::System => GeneratedUI::Theme::System,
+                        config::Theme::Dark => GeneratedUI::Theme::Dark,
+                        config::Theme::Light => GeneratedUI::Theme::Light,
                     });
                     strong_ui.invoke_reload_theme();
                 }
@@ -212,9 +212,9 @@ fn load_config_to_ui(ui: &App, config: &Config) {
     let settings = ui.global::<Settings>();
 
     settings.set_theme(match config.theme {
-        config::Theme::System => ui::Theme::System,
-        config::Theme::Dark => ui::Theme::Dark,
-        config::Theme::Light => ui::Theme::Light,
+        config::Theme::System => GeneratedUI::Theme::System,
+        config::Theme::Dark => GeneratedUI::Theme::Dark,
+        config::Theme::Light => GeneratedUI::Theme::Light,
     });
     ui.invoke_reload_theme();
 

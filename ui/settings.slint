@@ -1,4 +1,14 @@
-import { Button, ComboBox, GridBox, HorizontalBox, LineEdit, Palette, ScrollView, StandardButton, StyleMetrics } from "std-widgets.slint";
+import {
+    Button,
+    ComboBox,
+    GridBox,
+    HorizontalBox,
+    LineEdit,
+    Palette,
+    ScrollView,
+    StandardButton,
+    StyleMetrics,
+} from "std-widgets.slint";
 
 export enum Theme {
     system,
@@ -44,48 +54,27 @@ component Undoable inherits HorizontalBox {
     undo := Button {
         icon: @image-url("icons/edit-undo-symbolic.svg");
         colorize-icon: true;
+        icon-size: 1.2rem;
         height: self.width;
     }
 }
 
 export global Settings {
+    callback save(string);
+    callback reset(string);
     callback reset-all;
 
     in-out property <Theme> theme;
-    callback changed-theme;
-    callback reset-theme;
 
     in-out property <string> my-studio-email;
-    callback changed-my-studio-email;
-    callback reset-my-studio-email;
-
     in-out property <string> my-studio-company-id;
-    callback changed-my-studio-company-id;
-    callback reset-my-studio-company-id;
 
     in-out property <string> student-data-filepath;
-    callback changed-student-data-filepath;
-    callback reset-student-data-filepath;
-
     in-out property <string> student-data-sheet-name;
-    callback changed-student-data-sheet-name;
-    callback reset-student-data-sheet-name;
-
     in-out property <int> student-data-name-column;
-    callback changed-student-data-name-column;
-    callback reset-student-data-name-column;
-
     in-out property <int> student-data-id-column;
-    callback changed-student-data-id-column;
-    callback reset-student-data-id-column;
-
     in-out property <int> student-data-immediate-sign-in-column;
-    callback changed-student-data-immediate-sign-in-column;
-    callback reset-student-data-immediate-sign-in-column;
-
     in-out property <string> student-data-immediate-sign-in-enabled-symbol;
-    callback changed-student-data-immediate-sign-in-enabled-symbol;
-    callback reset-student-data-immediate-sign-in-enabled-symbol;
 }
 
 export component SettingsPage {
@@ -100,11 +89,12 @@ export component SettingsPage {
             width: 75%;
             padding-top: StyleMetrics.layout-padding * 4;
             spacing-horizontal: 100px;
+            spacing-vertical: 0px;
 
             Row {
                 Text {
                     text: "Settings";
-                    font-size: 25pt;
+                    font-size: 3rem;
                     font-weight: 800;
                 }
             }
@@ -118,12 +108,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "Theme";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-theme();
+                        Settings.reset("theme");
                     }
 
                     ComboBox {
@@ -147,7 +138,7 @@ export component SettingsPage {
                             } else {
                                 Settings.theme = Theme.system;
                             }
-                            Settings.changed-theme();
+                            Settings.save("theme")
                         }
                     }
                 }
@@ -162,19 +153,20 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "MyStudio";
-                    font-size: 12pt;
+                    font-size: 1.5rem;
                 }
             }
 
             Row {
                 Text {
                     text: "Email";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-my-studio-email();
+                        Settings.reset("my-studio-email");
                     }
 
                     LineEdit {
@@ -183,7 +175,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.my-studio-email = text;
-                            Settings.changed-my-studio-email();
+                            Settings.save("my-studio-email");
                         }
                     }
                 }
@@ -192,12 +184,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "Company ID";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-my-studio-company-id();
+                        Settings.reset("my-studio-company-id");
                     }
 
                     LineEdit {
@@ -205,7 +198,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.my-studio-company-id = text;
-                            Settings.changed-my-studio-company-id();
+                            Settings.save("my-studio-company-id");
                         }
                     }
                 }
@@ -219,20 +212,21 @@ export component SettingsPage {
 
             Row {
                 Text {
-                    text: "Student Data Spreadsheet";
-                    font-size: 12pt;
+                    text: "Student data spreadsheet";
+                    font-size: 1.5rem;
                 }
             }
 
             Row {
                 Text {
-                    text: "Filename";
-                    font-size: 10pt;
+                    text: "Filepath";
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-filepath();
+                        Settings.reset("student-data-filepath");
                     }
 
                     LineEdit {
@@ -241,7 +235,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.student-data-filepath = text;
-                            Settings.changed-student-data-filepath();
+                            Settings.save("student-data-filepath");
                         }
                     }
                 }
@@ -250,12 +244,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "Sheet name";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-sheet-name();
+                        Settings.reset("student-data-sheet-name");
                     }
 
                     LineEdit {
@@ -264,7 +259,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.student-data-sheet-name = text;
-                            Settings.changed-student-data-sheet-name();
+                            Settings.save("student-data-sheet-name");
                         }
                     }
                 }
@@ -273,12 +268,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "Name column index";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-name-column();
+                        Settings.reset("student-data-name-column");
                     }
 
                     LineEdit {
@@ -288,7 +284,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.student-data-name-column = text.to-float();
-                            Settings.changed-student-data-name-column();
+                            Settings.save("student-data-name-column");
                         }
                     }
                 }
@@ -297,12 +293,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "ID column index";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-id-column();
+                        Settings.reset("student-data-id-column");
                     }
 
                     LineEdit {
@@ -312,7 +309,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.student-data-id-column = text.to-float();
-                            Settings.changed-student-data-id-column();
+                            Settings.save("student-data-id-column");
                         }
                     }
                 }
@@ -321,12 +318,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "Immediate sign-in column";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-immediate-sign-in-column();
+                        Settings.reset("student-data-immediate-sign-in-column");
                     }
 
                     LineEdit {
@@ -336,7 +334,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.student-data-immediate-sign-in-column = text.to-float();
-                            Settings.changed-student-data-immediate-sign-in-column();
+                            Settings.save("student-data-immediate-sign-in-column");
                         }
                     }
                 }
@@ -345,12 +343,13 @@ export component SettingsPage {
             Row {
                 Text {
                     text: "Immediate sign-in enabled symbol";
-                    font-size: 10pt;
+                    font-size: 1.1rem;
+                    vertical-alignment: center;
                 }
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset-student-data-immediate-sign-in-enabled-symbol();
+                        Settings.reset("student-data-immediate-sign-in-enabled-symbol");
                     }
 
                     LineEdit {
@@ -359,7 +358,7 @@ export component SettingsPage {
 
                         edited(text) => {
                             Settings.student-data-immediate-sign-in-enabled-symbol = text;
-                            Settings.changed-student-data-immediate-sign-in-enabled-symbol();
+                            Settings.save("student-data-immediate-sign-in-enabled-symbol");
                         }
                     }
                 }

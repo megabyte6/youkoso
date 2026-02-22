@@ -74,6 +74,23 @@ component Undoable inherits HorizontalBox {
     }
 }
 
+component IntLineEdit inherits LineEdit {
+    in-out property <int> value;
+
+    input-type: number;
+    text: value;
+
+    changed value => {
+        if (!self.has-focus) {
+            self.text = value;
+        }
+    }
+
+    changed text => {
+        root.value = self.text.to-float();
+    }
+}
+
 export component SettingsPage {
     width: 800px;
     height: 600px;
@@ -115,25 +132,40 @@ export component SettingsPage {
                     }
 
                     ComboBox {
+                        in-out property <ColorScheme> color-scheme <=> Palette.color-scheme;
+
                         model: ["System", "Dark", "Light"];
                         current-value: {
-                            if Palette.color-scheme == ColorScheme.dark {
+                            if color-scheme == ColorScheme.dark {
                                 "Dark"
-                            } else if Palette.color-scheme == ColorScheme.light {
+                            } else if color-scheme == ColorScheme.light {
                                 "Light"
                             } else {
                                 "System"
                             }
                         };
 
-                        selected(current-value) => {
-                            if current-value == "Dark" {
-                                Palette.color-scheme = ColorScheme.dark;
-                            } else if current-value == "Light" {
-                                Palette.color-scheme = ColorScheme.light;
+                        changed color-scheme => {
+                            if color-scheme == ColorScheme.dark {
+                                self.current-value = "Dark";
+                            } else if color-scheme == ColorScheme.light {
+                                self.current-value = "Light";
                             } else {
-                                Palette.color-scheme = ColorScheme.unknown;
+                                self.current-value = "System";
                             }
+                        }
+
+                        changed current-value => {
+                            if self.current-value == "Dark" {
+                                color-scheme = ColorScheme.dark;
+                            } else if self.current-value == "Light" {
+                                color-scheme = ColorScheme.light;
+                            } else {
+                                color-scheme = ColorScheme.unknown;
+                            }
+                        }
+
+                        selected(current-value) => {
                             Settings.sync-settings();
                         }
                     }
@@ -269,13 +301,11 @@ export component SettingsPage {
                         Settings.reset("student-data.name-column");
                     }
 
-                    LineEdit {
-                        text: Settings.student-data.name-column;
-                        input-type: number;
+                    IntLineEdit {
+                        value <=> Settings.student-data.name-column;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.student-data.name-column = text.to-float();
+                        edited => {
                             Settings.sync-settings();
                         }
                     }
@@ -294,13 +324,11 @@ export component SettingsPage {
                         Settings.reset("student-data.id-column");
                     }
 
-                    LineEdit {
-                        text: Settings.student-data.id-column;
-                        input-type: number;
+                    IntLineEdit {
+                        value <=> Settings.student-data.id-column;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.student-data.id-column = text.to-float();
+                        edited => {
                             Settings.sync-settings();
                         }
                     }
@@ -319,13 +347,11 @@ export component SettingsPage {
                         Settings.reset("student-data.immediate-sign-in-column");
                     }
 
-                    LineEdit {
-                        text: Settings.student-data.immediate-sign-in-column;
-                        input-type: number;
+                    IntLineEdit {
+                        value <=> Settings.student-data.immediate-sign-in-column;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.student-data.immediate-sign-in-column = text.to-float();
+                        edited => {
                             Settings.sync-settings();
                         }
                     }
@@ -341,15 +367,14 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("student-data-immediate-sign-in-enabled-symbol");
+                        Settings.reset("student-data.immediate-sign-in-enabled-symbol");
                     }
 
                     LineEdit {
-                        text: Settings.student-data.immediate-sign-in-enabled-symbol;
+                        text <=> Settings.student-data.immediate-sign-in-enabled-symbol;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.student-data.immediate-sign-in-enabled-symbol = text;
+                        edited => {
                             Settings.sync-settings();
                         }
                     }

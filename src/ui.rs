@@ -15,9 +15,17 @@ pub fn init(config: &Rc<RefCell<Config>>) -> App {
     load_config(&ui, &config.try_borrow().unwrap());
 
     ui.window().on_close_requested({
+        let ui = ui.as_weak();
         let config = Rc::clone(config);
         move || {
+            let strong_ui = ui.upgrade().unwrap();
+            let settings = strong_ui.global::<Settings>();
+            if settings.get_syncing() {
+                save_to_config(&settings, &mut config.try_borrow_mut().unwrap());
+                settings.set_syncing(false);
+            }
             config.try_borrow().unwrap().save().unwrap();
+
             CloseRequestResponse::HideWindow
         }
     });
@@ -52,32 +60,7 @@ fn impl_settings_page_callbacks(ui: &App, config: &Rc<RefCell<Config>>) {
                 // a strong reference to the ui
                 let strong_ui = ui.upgrade().unwrap();
                 let settings = strong_ui.global::<Settings>();
-
-                config.theme = match settings.get_theme() {
-                    Theme::System => config::Theme::System,
-                    Theme::Dark => config::Theme::Dark,
-                    Theme::Light => config::Theme::Light,
-                };
-
-                config.my_studio.email = settings.get_my_studio().email.into();
-                config.my_studio.company_id = settings.get_my_studio().company_id.into();
-
-                config.student_data.filepath =
-                    settings.get_student_data().filepath.to_string().into();
-                config.student_data.sheet_name = settings.get_student_data().sheet_name.into();
-                config.student_data.name_column =
-                    settings.get_student_data().name_column.try_into().unwrap();
-                config.student_data.id_column =
-                    settings.get_student_data().id_column.try_into().unwrap();
-                config.student_data.immediate_sign_in.column = settings
-                    .get_student_data()
-                    .immediate_sign_in_column
-                    .try_into()
-                    .unwrap();
-                config.student_data.immediate_sign_in.enabled_symbol = settings
-                    .get_student_data()
-                    .immediate_sign_in_enabled_symbol
-                    .into();
+                save_to_config(&settings, &mut config);
 
                 settings.set_syncing(false);
             });
@@ -207,4 +190,29 @@ fn load_config(ui: &App, config: &Config) {
             .clone()
             .into(),
     });
+}
+
+fn save_to_config(settings: &Settings, config: &mut Config) {
+    config.theme = match settings.get_theme() {
+        Theme::System => config::Theme::System,
+        Theme::Dark => config::Theme::Dark,
+        Theme::Light => config::Theme::Light,
+    };
+
+    config.my_studio.email = settings.get_my_studio().email.into();
+    config.my_studio.company_id = settings.get_my_studio().company_id.into();
+
+    config.student_data.filepath = settings.get_student_data().filepath.to_string().into();
+    config.student_data.sheet_name = settings.get_student_data().sheet_name.into();
+    config.student_data.name_column = settings.get_student_data().name_column.try_into().unwrap();
+    config.student_data.id_column = settings.get_student_data().id_column.try_into().unwrap();
+    config.student_data.immediate_sign_in.column = settings
+        .get_student_data()
+        .immediate_sign_in_column
+        .try_into()
+        .unwrap();
+    config.student_data.immediate_sign_in.enabled_symbol = settings
+        .get_student_data()
+        .immediate_sign_in_enabled_symbol
+        .into();
 }

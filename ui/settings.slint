@@ -15,6 +15,29 @@ export enum Theme {
     dark,
     light,
 }
+export struct MyStudio {
+    email: string,
+    company_id: string,
+}
+export struct StudentData {
+    filepath: string,
+    sheet-name: string,
+    name-column: int,
+    id-column: int,
+    immediate-sign-in-column: int,
+    immediate-sign-in-enabled-symbol: string,
+}
+export global Settings {
+    in-out property <bool> syncing: false;
+    callback sync-settings;
+
+    callback reset(string);
+    callback reset-all;
+
+    in-out property <Theme> theme;
+    in-out property <MyStudio> my-studio;
+    in-out property <StudentData> student-data;
+}
 
 component Separator {
     in property <Orientation> orientation: horizontal;
@@ -55,24 +78,6 @@ component Undoable inherits HorizontalBox {
         icon-size: 1.2rem;
         height: self.width;
     }
-}
-
-export global Settings {
-    callback save(string);
-    callback reset(string);
-    callback reset-all;
-
-    in-out property <Theme> theme;
-
-    in-out property <string> my-studio-email;
-    in-out property <string> my-studio-company-id;
-
-    in-out property <string> student-data-filepath;
-    in-out property <string> student-data-sheet-name;
-    in-out property <int> student-data-name-column;
-    in-out property <int> student-data-id-column;
-    in-out property <int> student-data-immediate-sign-in-column;
-    in-out property <string> student-data-immediate-sign-in-enabled-symbol;
 }
 
 export component SettingsPage {
@@ -136,7 +141,7 @@ export component SettingsPage {
                             } else {
                                 Settings.theme = Theme.system;
                             }
-                            Settings.save("theme")
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -164,16 +169,15 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("my-studio-email");
+                        Settings.reset("my-studio.email");
                     }
 
                     LineEdit {
-                        text: Settings.my-studio-email;
+                        text <=> Settings.my-studio.email;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.my-studio-email = text;
-                            Settings.save("my-studio-email");
+                        edited => {
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -188,15 +192,14 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("my-studio-company-id");
+                        Settings.reset("my-studio.company-id");
                     }
 
                     LineEdit {
-                        text: Settings.my-studio-company-id;
+                        text <=> Settings.my-studio.company-id;
 
-                        edited(text) => {
-                            Settings.my-studio-company-id = text;
-                            Settings.save("my-studio-company-id");
+                        edited => {
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -224,16 +227,15 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("student-data-filepath");
+                        Settings.reset("student-data.filepath");
                     }
 
                     LineEdit {
-                        text: Settings.student-data-filepath;
+                        text <=> Settings.student-data.filepath;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.student-data-filepath = text;
-                            Settings.save("student-data-filepath");
+                        edited => {
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -248,16 +250,15 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("student-data-sheet-name");
+                        Settings.reset("student-data.sheet-name");
                     }
 
                     LineEdit {
-                        text: Settings.student-data-sheet-name;
+                        text <=> Settings.student-data.sheet-name;
                         preferred-width: 300px;
 
-                        edited(text) => {
-                            Settings.student-data-sheet-name = text;
-                            Settings.save("student-data-sheet-name");
+                        edited => {
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -272,17 +273,17 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("student-data-name-column");
+                        Settings.reset("student-data.name-column");
                     }
 
                     LineEdit {
-                        text: Settings.student-data-name-column;
+                        text: Settings.student-data.name-column;
                         input-type: number;
                         preferred-width: 300px;
 
                         edited(text) => {
-                            Settings.student-data-name-column = text.to-float();
-                            Settings.save("student-data-name-column");
+                            Settings.student-data.name-column = text.to-float();
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -297,17 +298,17 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("student-data-id-column");
+                        Settings.reset("student-data.id-column");
                     }
 
                     LineEdit {
-                        text: Settings.student-data-id-column;
+                        text: Settings.student-data.id-column;
                         input-type: number;
                         preferred-width: 300px;
 
                         edited(text) => {
-                            Settings.student-data-id-column = text.to-float();
-                            Settings.save("student-data-id-column");
+                            Settings.student-data.id-column = text.to-float();
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -322,17 +323,17 @@ export component SettingsPage {
 
                 Undoable {
                     undo-clicked => {
-                        Settings.reset("student-data-immediate-sign-in-column");
+                        Settings.reset("student-data.immediate-sign-in-column");
                     }
 
                     LineEdit {
-                        text: Settings.student-data-immediate-sign-in-column;
+                        text: Settings.student-data.immediate-sign-in-column;
                         input-type: number;
                         preferred-width: 300px;
 
                         edited(text) => {
-                            Settings.student-data-immediate-sign-in-column = text.to-float();
-                            Settings.save("student-data-immediate-sign-in-column");
+                            Settings.student-data.immediate-sign-in-column = text.to-float();
+                            Settings.sync-settings();
                         }
                     }
                 }
@@ -351,12 +352,12 @@ export component SettingsPage {
                     }
 
                     LineEdit {
-                        text: Settings.student-data-immediate-sign-in-enabled-symbol;
+                        text: Settings.student-data.immediate-sign-in-enabled-symbol;
                         preferred-width: 300px;
 
                         edited(text) => {
-                            Settings.student-data-immediate-sign-in-enabled-symbol = text;
-                            Settings.save("student-data-immediate-sign-in-enabled-symbol");
+                            Settings.student-data.immediate-sign-in-enabled-symbol = text;
+                            Settings.sync-settings()
                         }
                     }
                 }

@@ -10,11 +10,6 @@ import {
     StyleMetrics,
 } from "std-widgets.slint";
 
-export enum Theme {
-    system,
-    dark,
-    light,
-}
 export struct MyStudio {
     email: string,
     company_id: string,
@@ -34,7 +29,6 @@ export global Settings {
     callback reset(string);
     callback reset-all;
 
-    in-out property <Theme> theme;
     in-out property <MyStudio> my-studio;
     in-out property <StudentData> student-data;
 }
@@ -122,24 +116,23 @@ export component SettingsPage {
 
                     ComboBox {
                         model: ["System", "Dark", "Light"];
-                        current-value: theme-value;
-
-                        property <string> theme-value: {
-                            if Settings.theme == Theme.dark {
-                                return "Dark";
-                            } else if Settings.theme == Theme.light {
-                                return "Light";
+                        current-value: {
+                            if Palette.color-scheme == ColorScheme.dark {
+                                "Dark"
+                            } else if Palette.color-scheme == ColorScheme.light {
+                                "Light"
                             } else {
-                                return "System";
+                                "System"
                             }
-                        }
+                        };
+
                         selected(current-value) => {
                             if current-value == "Dark" {
-                                Settings.theme = Theme.dark;
+                                Palette.color-scheme = ColorScheme.dark;
                             } else if current-value == "Light" {
-                                Settings.theme = Theme.light;
+                                Palette.color-scheme = ColorScheme.light;
                             } else {
-                                Settings.theme = Theme.system;
+                                Palette.color-scheme = ColorScheme.unknown;
                             }
                             Settings.sync-settings();
                         }
